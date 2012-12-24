@@ -28,7 +28,7 @@ re_alt_sub_definition = re.compile(r'^\s*[+](\w+)\s+(\d+)\s+(\d+)\s+(\d+)*?\s+(\
 # Index Data Format
 # Variable             Data
 # Name          Order  Type   Description
-re_idx_definition = re.compile(r'^(\w+)\s+(\d+)[*]?\s+(\w+)\s+(.*)$')
+re_idx_definition = re.compile(r'^[+]?(\w+)\s+(\d+)[*]?\s+(\w+)\s+(.*)$')
 
 datafile_name = "nces%02d-%02d.txt"
 formatfile_name = "nces%02d-%02d_layout.txt"
@@ -84,7 +84,6 @@ class NCESParser(object):
         self.index_mode = 0
         self.save_names = [
             "FIPS",
-            "FIPST",
             "BLACK",
             "WHITE",
             "MEMBER",
@@ -157,11 +156,15 @@ class NCESParser(object):
             elif self.index_mode and re_idx_definition.search(line):
                 col_name, loidx, type, description = re_idx_definition.search(line).groups()
                 hiidx = loidx
+                size = 0
             else:
                 if self.debug:
                     print line
                 continue
 
+            # Filter out a problematic NCES year to year change
+            if col_name == "FIPST":
+                col_name = "FIPS"
             self.add_instr(col_name, type, loidx, hiidx, size, description)
 
         if self.debug:
@@ -217,7 +220,10 @@ class NCESParser(object):
     def parse_line(self, line):
         entry = []
         for instr in self.parse_instr:
-            field = line[instr[2]:instr[3]]   # Python array slicing rules  low_idx : high_idx + 1
+            if self.index_mode:
+                field = line[instr[2]]
+            else:
+                field = line[instr[2]:instr[3]]   # Python array slicing rules  low_idx : high_idx + 1
             if self.debug:
                 print field
             if instr[1] == 'N':   # Number Type
@@ -244,18 +250,11 @@ class NCESParser(object):
             line = fh.next() # Pop the header line
 
         self.schools = []
-        if self.index_mode:
-            for line in fh:
-                if make_dict:
-                    self.schools.append(self.make_dict(line))  # CSV already breaks it apart
-                else:
-                    self.schools.append(line)  # CSV already breaks it apart
-        else:
-            for line in fh:
-                if make_dict:
-                    self.schools.append(self.make_dict(self.parse_line(line)))
-                else:
-                    self.schools.append(self.parse_line(line))
+        for line in fh:
+            if make_dict:
+                self.schools.append(self.make_dict(self.parse_line(line)))
+            else:
+                self.schools.append(self.parse_line(line))
 
         if self.debug:
             print len(self.schools)
