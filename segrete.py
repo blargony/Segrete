@@ -70,9 +70,69 @@ fips_to_st = {
 
 
 # ==============================================================================
-# Utility Functions
+# Functions
 # ==============================================================================
+def calc_idxes(year_range, idx):
+    """
+    Call down to get all the various measures calculated
+    """
+    exp_idx = []
+    iso_idx = []
+    dis_idx = []
+    for year in year_range:
+        print "Working on NCES Data from:  %d" % year
+        # Get our dataset ready
+        nces = NCESParser(year=year)
+        schools = nces.parse(make_dict=True)
+        sg = SegCalc(schools, idx)
+        exp_idx.append(sg.calc_exp_idx())
+        iso_idx.append(sg.calc_iso_idx())
+        dis_idx.append(sg.calc_dis_idx())
+    return (exp_idx, iso_idx, dis_idx)
 
+# -------------------------------------
+def save_report(year_range, idxes, filename):
+    # Break out the calculated data
+    exp_idx, iso_idx, dis_idx = idxes
+
+    # Now lets format it into a report.
+    # Report will be a 2D matrix
+    # X-Axis = school year
+    # Y-Axis = FIPS Code
+    wb = Workbook()
+    ews = wb.add_sheet('Exposure Index')
+    iws = wb.add_sheet('Isolation Index')
+    dws = wb.add_sheet('Dissimilarity Index')
+
+    worksheets = [ews, iws, dws]
+
+    # Create the headers/labels row/col
+    for ws in worksheets:
+        ws.write(0, 0, "State/Year")
+        for j, st in enumerate(fips_to_st):
+            ws.write(j+1, 0, fips_to_st[st][0])
+
+    # Print out the data
+    for i, year in enumerate(year_range):
+        print "Write Report for:  %d" % year
+        for ws in worksheets:
+            ws.write(0, i+1, year)
+        for j, st in enumerate(fips_to_st.keys()):
+            if exp_idx[i][st] < 0.001:
+                ews.write(j+1, i+1, "")
+            else:
+                ews.write(j+1, i+1, exp_idx[i][st])
+
+            if iso_idx[i][st] < 0.001:
+                iws.write(j+1, i+1, "")
+            else:
+                iws.write(j+1, i+1, iso_idx[i][st])
+
+            if dis_idx[i][st] < 0.001:
+                dws.write(j+1, i+1, "")
+            else:
+                dws.write(j+1, i+1, dis_idx[i][st])
+    wb.save(filename)
 
 # -------------------------------------
 # Parse the command line options
@@ -87,52 +147,22 @@ def main(argv):
 
     # Lets calculate all the data first
     year_range = range(1987, 2011)
-    exp_idx = []
-    iso_idx = []
 
-    for year in year_range:
-        print "Working on NCES Data from:  %d" % year
-        # Get our dataset ready
-        nces = NCESParser(year=year)
-        schools = nces.parse(make_dict=True)
+    idx = {'Y_GROUP': 'BLACK', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
+    idxes = calc_idxes(year_range, idx)
+    save_report(year_range, idxes, "black_" + args.outfile)
 
-        # Dig into the dataset based on
-        idx = {'Y_GROUP': 'BLACK', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
-        sg = SegCalc(schools, idx)
-        exp_idx.append(sg.calc_exp_idx())
-        iso_idx.append(sg.calc_iso_idx())
+    idx = {'Y_GROUP': 'HISP', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
+    idxes = calc_idxes(year_range, idx)
+    save_report(year_range, idxes, "hisp_" + args.outfile)
 
+    idx = {'Y_GROUP': 'ASIAN', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
+    idxes = calc_idxes(year_range, idx)
+    save_report(year_range, idxes, "asian_" + args.outfile)
 
-    # Now lets format it into a report.
-    # Report will be a 2D matrix
-    # X-Axis = school year
-    # Y-Axis = FIPS Code
-    wb = Workbook()
-    ews = wb.add_sheet('Exposure Index')
-    iws = wb.add_sheet('Isolation Index')
-
-    ews.write(0, 0, "State/Year")
-    iws.write(0, 0, "State/Year")
-    for j, st in enumerate(fips_to_st):
-        ews.write(j+1, 0, fips_to_st[st][0])
-        iws.write(j+1, 0, fips_to_st[st][0])
-
-    for i, year in enumerate(year_range):
-        print "Write Report for:  %d" % year
-        ews.write(0, i+1, year)
-        iws.write(0, i+1, year)
-        for j, st in enumerate(fips_to_st.keys()):
-            if exp_idx[i][st] < 0.001:
-                ews.write(j+1, i+1, "")
-            else:
-                ews.write(j+1, i+1, exp_idx[i][st])
-
-            if iso_idx[i][st] < 0.001:
-                iws.write(j+1, i+1, "")
-            else:
-                iws.write(j+1, i+1, iso_idx[i][st])
-
-    wb.save(args.outfile)
+    idx = {'Y_GROUP': 'IND', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
+    idxes = calc_idxes(year_range, idx)
+    save_report(year_range, idxes, "native_amer_" + args.outfile)
 
 # -------------------------------------
 # Drop the script name from the args
