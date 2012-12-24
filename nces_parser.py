@@ -85,8 +85,12 @@ class NCESParser(object):
         self.save_names = [
             "FIPS",
             "BLACK",
+            "HISP",
+            "ASIAN",
+            "IND",
             "WHITE",
             "MEMBER",
+            "FRELCH",
             "GSHI",
             "LEAID"
         ]
@@ -162,12 +166,15 @@ class NCESParser(object):
                     print line
                 continue
 
-            # Filter out a problematic NCES year to year change
+            # Filter out a problematic NCES year to year changes
             if col_name == "FIPST":
                 col_name = "FIPS"
                 type = 'N'
             if col_name == "FIPS":
                 type = 'N'
+            if col_name == "FRE" + str(self.year%100):
+                col_name = "FRELCH"
+
             self.add_instr(col_name, type, loidx, hiidx, size, description)
 
         if self.debug:
