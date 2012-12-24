@@ -17,7 +17,7 @@ import sys
 # ==============================================================================
 
 # ==============================================================================
-class Segrite(object):
+class SegCalc(object):
     """
     A segregation calculating object.
     """
@@ -186,7 +186,7 @@ def main(argv):
     ]
     idx = {'Y_GROUP': 'BLACK', 'Z_GROUP': 'WHITE', 'TOTAL': 'TOTAL', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEA'}
 
-    sg = Segrite(sl, idx)
+    sg = SegCalc(sl, idx)
     print sg.calc_exp_idx()
 
 # -------------------------------------
