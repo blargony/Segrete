@@ -133,9 +133,9 @@ class NCESParser(object):
 
         for line in fh:
             if re_definition.search(line):
-                col_name, type, loidx, hidix, size, description = re_definition.search(line).groups()
+                col_name, type, loidx, hiidx, size, description = re_definition.search(line).groups()
             elif re_sub_definition.search(line):
-                col_name, type, loidx, hidix, size, description = re_sub_definition.search(line).groups()
+                col_name, type, loidx, hiidx, size, description = re_sub_definition.search(line).groups()
             elif re_alt_definition.search(line):
                 col_name, loidx, hiidx, size, type, description = re_alt_definition.search(line).groups()
             elif re_alt_sub_definition.search(line):
@@ -145,7 +145,8 @@ class NCESParser(object):
                 self.mode_idx = 1
                 col_name, idx, type, description = re_idx_definition.search(line).groups()
             else:
-                print line
+                if self.debug:
+                    print line
                 continue
 
             if self.mode_idx:
@@ -219,14 +220,22 @@ class NCESParser(object):
     def parse_line(self, line):
         entry = []
         for instr in self.parse_instr:
-            sub_str = line[instr[2]:instr[3]]   # Python array slicing rules  low_idx : high_idx + 1
+            field = line[instr[2]:instr[3]]   # Python array slicing rules  low_idx : high_idx + 1
             if self.debug:
-                print sub_str
-            entry.append(sub_str.strip())
+                print field
+            if instr[1] == 'N':   # Number Type
+                try:
+                    field = int(field)
+                except ValueError:
+                    field = 0    # Squash invalid values to 0 for fields of type 'Number'
+            else:
+                field.strip()
+            entry.append(field)
+
         return entry
 
     # --------------------------------------
-    def parse(self, datafile=""):
+    def parse(self, datafile="", make_dict=False):
 
         if datafile:
             fname = datafile
@@ -235,17 +244,21 @@ class NCESParser(object):
         fh = open(fname, 'rb')
         if self.mode_idx:
             fh = csv.reader(fh, dialect='excel-tab')
-
-        # Pop the header line
-        line = fh.next()
+            line = fh.next() # Pop the header line
 
         self.schools = []
         if self.mode_idx:
             for line in fh:
-                self.schools.append(line)  # CSV already breaks it apart
+                if make_dict:
+                    self.schools.append(self.make_dict(line))  # CSV already breaks it apart
+                else:
+                    self.schools.append(line)  # CSV already breaks it apart
         else:
             for line in fh:
-                self.schools.append(self.parse_line(line))
+                if make_dict:
+                    self.schools.append(self.make_dict(self.parse_line(line)))
+                else:
+                    self.schools.append(self.parse_line(line))
 
         if self.debug:
             print len(self.schools)
