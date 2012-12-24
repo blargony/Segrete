@@ -65,7 +65,24 @@ class SegCalc(object):
                 zi = school[zidx]
                 ti = school[self.total_idx]
             except KeyError:
-                print "Problem School:",school.__repr__()
+                raise Exception("Problem School:",school.__repr__())
+
+            # Make sure the datastructure exists
+            try:
+                test = Sum[school[self.cat_idx]]
+            except KeyError:
+                Sum[school[self.cat_idx]] = 0.0
+
+            # Now sum up all the members of Group Y to divided
+            # out of the final sum
+            try:
+                test = Y[school[self.cat_idx]]
+            except KeyError:
+                Y[school[self.cat_idx]] = 0.0
+
+            # Negative numbers are used to represent missing data, don't
+            # include these in the calculations
+            if yi < 0 or zi < 0 or ti < 0:
                 continue
 
             # Compute the term to be summed up
@@ -166,13 +183,12 @@ class SegCalc(object):
             except KeyError:
                 Num[school[self.cat_idx]] = abs(giy - Py[self.cat_idx] * ti)
 
-        # TODO
         # Now calculate the Demoninator
         # Iterate over the two or more groups
-        Den = {}
-        for school in self.data_iter:
-            giy = school[self.y_group_idx]
-            ti = school[self.total_idx]
+        Den = 0
+        for cat in T.keys():
+            Den += T[cat] * Py[cat] * (1 - Py[cat])
+            Den += T[cat] * Pz[cat] * (1 - Pz[cat])
 
 
 # *****************************************************************************
