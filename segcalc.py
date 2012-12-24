@@ -28,6 +28,7 @@ class SegCalc(object):
         and a dictionary of indexes for extracting the information
         from the dataobjects turned off by the dataset iterator
         """
+        self.debug = 0
         self.data_iter = data_iter
         self.y_group_idx = index_dict['Y_GROUP']  # Minority Group Student Count
         self.z_group_idx = index_dict['Z_GROUP']  # Majority Group Student Count
@@ -146,10 +147,10 @@ class SegCalc(object):
 
         """
         # Calculate:
-        #   Total Student cout
-        #   Percentage of Group Y
-        #   Percentage of Group Z
-        # Remember to keep them grouped by our geographic region (category)
+        #   Total Student Count
+        #   Percentage of Total in Group Y
+        #   Percentage of Total in Group Z
+        # Remember to keep things grouped by region (category)
         Py = {}
         Pz = {}
         T = {}
@@ -157,6 +158,11 @@ class SegCalc(object):
             giy = school[self.y_group_idx]
             giz = school[self.z_group_idx]
             ti = school[self.total_idx]
+
+            # Negative numbers are used to represent missing data, don't
+            # include these in the calculations
+            if giy < 0 or giz < 0 or ti < 0:
+                continue
 
             try:
                 Py[school[self.cat_idx]] += giy
@@ -167,31 +173,75 @@ class SegCalc(object):
                 Pz[school[self.cat_idx]] = giz
                 T[school[self.cat_idx]] = ti
 
-        for cat in Py.keys():
-            Py[cat] = Py[cat] / T[cat]
-            Pz[cat] = Pz[cat] / T[cat]
+        for cat in T.keys():
+            try:
+                Py[cat] = float(Py[cat]) / T[cat]
+            except ZeroDivisionError:
+                Py[cat] = 0.0
 
-        # Py/Pz now represent a set of percentages of the student population in
-        # a given group that are in Group Y and Group Z
+            try:
+                Pz[cat] = float(Pz[cat]) / T[cat]
+            except ZeroDivisionError:
+                Pz[cat] = 0.0
 
-        # TODO: Repeat for the second group (Z_GROUP)
-        # Now we have P, we can calculate the numerator
+        if self.debug:
+            print "=" * 80
+            print "Totals and Averages"
+            print "=" * 80
+            print Py
+            print Pz
+            print T
+
+        # Now we have Py/Pz, we can calculate the numerator
         Num = {}
         for school in self.data_iter:
             giy = school[self.y_group_idx]
+            giz = school[self.z_group_idx]
             ti = school[self.total_idx]
 
-            try:
-                Num[school[self.cat_idx]] += abs(giy - Py[self.cat_idx] * ti)
-            except KeyError:
-                Num[school[self.cat_idx]] = abs(giy - Py[self.cat_idx] * ti)
+            # Negative numbers are used to represent missing data, don't
+            # include these in the calculations
+            if giy < 0 or giz < 0 or ti < 0:
+                continue
 
-        # Now calculate the Demoninator
-        # Iterate over the two or more groups
-        Den = 0
+            # Make sure the datastructure exists
+            try:
+                test = Num[school[self.cat_idx]]
+            except KeyError:
+                Num[school[self.cat_idx]] = 0.0
+
+            # Add the terms for both groups here
+            # Currently we are limited to the dissimilarily between
+            # two groups.
+            Num[school[self.cat_idx]] += abs(giy - Py[school[self.cat_idx]] * ti)
+
+        if self.debug:
+            print "=" * 80
+            print "Numerator"
+            print "=" * 80
+            print Num
+
+        # We also have T and Py/Pz so we can calculate the Denominator
+        Den = {}
         for cat in T.keys():
-            Den += T[cat] * Py[cat] * (1 - Py[cat])
-            Den += T[cat] * Pz[cat] * (1 - Pz[cat])
+            Den[cat] = 0.0
+            Den[cat] += T[cat] * Py[cat] * (1 - Py[cat])
+            Den[cat] += T[cat] * Pz[cat] * (1 - Pz[cat])
+
+        if self.debug:
+            print "=" * 80
+            print "Denomenator"
+            print "=" * 80
+            print Den
+
+        Sum = {}
+        for cat in Num.keys():
+            try:
+                Sum[cat] = 0.5*Num[cat]/Den[cat]
+            except ZeroDivisionError:
+                Sum[cat] = 0.0
+
+        return Sum
 
 
 # *****************************************************************************
@@ -208,26 +258,32 @@ def main(argv):
     # Lets do a quick test, normally this isn't run at the command line
     # Short list for now
     sl = [
-        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 01, 'LEAID': 011},
-        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 01, 'LEAID': 011},
-        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 01, 'LEAID': 011},
-        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 01, 'LEAID': 011},
-        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 02, 'LEAID': 011},
-        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 02, 'LEAID': 011},
-        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 02, 'LEAID': 011},
-        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 02, 'LEAID': 011}
+        {'BLACK': 5, 'WHITE': 20, 'MEMBER': 25, 'FIPS': 01, 'LEAID': 011},
+        {'BLACK': 20, 'WHITE': 5, 'MEMBER': 25, 'FIPS': 01, 'LEAID': 011},
+        {'BLACK': 5, 'WHITE': 20, 'MEMBER': 25, 'FIPS': 02, 'LEAID': 011},
+        {'BLACK': 5, 'WHITE': 20, 'MEMBER': 25, 'FIPS': 02, 'LEAID': 011},
     ]
     idx = {'Y_GROUP': 'BLACK', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
 
     # Switch over to real data if interested.
-    # nces = NCESParser(year=2006)
-    # schools = nces.parse(make_dict=True)
-    # sg = SegCalc(schools, idx)
-    sg = SegCalc(sl, idx)
+    nces = NCESParser(year=2006)
+    schools = nces.parse(make_dict=True)
+    sg = SegCalc(schools, idx)
+    # sg = SegCalc(sl, idx)
 
     import pprint
+    print "=" * 80
+    print "Exposure Index"
+    print "=" * 80
     pprint.pprint(sg.calc_exp_idx())
+    print "=" * 80
+    print "Isolation Index"
+    print "=" * 80
     pprint.pprint(sg.calc_iso_idx())
+    print "=" * 80
+    print "Dissimilarity Index"
+    print "=" * 80
+    pprint.pprint(sg.calc_dis_idx())
 
 # -------------------------------------
 # Drop the script name from the args
