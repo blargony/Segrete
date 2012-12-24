@@ -14,7 +14,7 @@ import unittest
 # ==============================================================================
 # Constants and RegEx
 # ==============================================================================
-re_definition = re.compile(r'^(\w+)\s+(\w+)\s+(\d+)[-](\d+)\s+(\d+)[*]?\s+(.*)$')
+re_idx_header = re.compile(r'Name\s+Order\s+Type\s+Description')
 
 # Name    Type   Position  Size  Description
 re_definition = re.compile(r'^(\w+)\s+(\w+)\s+(\d+)[-](\d+)\s+(\d+)[*]?\s+(.*)$')
@@ -81,7 +81,7 @@ class NCESParser(object):
         self.header_count = 0
         self.headers = []
         self.descriptions = {}
-        self.mode_idx = 0
+        self.index_mode = 0
 
         if year:
             self.year = year
@@ -95,7 +95,7 @@ class NCESParser(object):
     def __repr__(self):
         results = ""
         for instr in self.parse_instr:
-            if self.mode_idx:
+            if self.index_mode:
                 results += "Name:  %s, Index: %d\n" % (instr[0], instr[2])
             else:
                 results += "Name:  %s, Size: %d\n" % (instr[0], instr[3] - instr[2] + 1)
@@ -132,6 +132,10 @@ class NCESParser(object):
         fh = open(formatfile, 'rb')
 
         for line in fh:
+            if re_idx_header.search(line):
+                if self.index_mode == 0:
+                    print "Switching to Index MODE!!!"
+                    self.index_mode = 1
             if re_definition.search(line):
                 col_name, type, loidx, hiidx, size, description = re_definition.search(line).groups()
             elif re_sub_definition.search(line):
@@ -141,15 +145,14 @@ class NCESParser(object):
             elif re_alt_sub_definition.search(line):
                 col_name, loidx, hiidx, size, type, description = re_alt_sub_definition.search(line).groups()
 
-            elif re_idx_definition.search(line):
-                self.mode_idx = 1
+            elif self.index_mode and re_idx_definition.search(line):
                 col_name, idx, type, description = re_idx_definition.search(line).groups()
             else:
                 if self.debug:
                     print line
                 continue
 
-            if self.mode_idx:
+            if self.index_mode:
                 self.add_idx_instr(col_name, idx, type, description)
             else:
                 self.add_instr(col_name, type, loidx, hiidx, size, description)
@@ -229,7 +232,7 @@ class NCESParser(object):
                 except ValueError:
                     field = 0    # Squash invalid values to 0 for fields of type 'Number'
             else:
-                field.strip()
+                field.strip()    # Otherwise clean up the string
             entry.append(field)
 
         return entry
@@ -242,12 +245,12 @@ class NCESParser(object):
         else:
             fname = self.get_datafile_name()
         fh = open(fname, 'rb')
-        if self.mode_idx:
+        if self.index_mode:
             fh = csv.reader(fh, dialect='excel-tab')
             line = fh.next() # Pop the header line
 
         self.schools = []
-        if self.mode_idx:
+        if self.index_mode:
             for line in fh:
                 if make_dict:
                     self.schools.append(self.make_dict(line))  # CSV already breaks it apart
