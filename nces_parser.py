@@ -165,6 +165,9 @@ class NCESParser(object):
             # Filter out a problematic NCES year to year change
             if col_name == "FIPST":
                 col_name = "FIPS"
+                type = 'N'
+            if col_name == "FIPS":
+                type = 'N'
             self.add_instr(col_name, type, loidx, hiidx, size, description)
 
         if self.debug:
