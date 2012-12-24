@@ -7,6 +7,7 @@ that we can index for one of several parameters to get the required
 data.
 """
 import sys
+from nces_parser import NCESParser
 
 # ==============================================================================
 # Constants
@@ -40,7 +41,7 @@ class SegCalc(object):
     def calc_iso_exp_idx(self, yidx, zidx):
         """
         Calculate the Exposure or Isolation Index
-        - Exposure:  How much exposure does the minority group get to the majority group?
+        - Exposure:  How much exposure does one group get to another group?
         - Isolation:  How much exposure does a minority group get to itself?
 
         Exposure:
@@ -116,10 +117,12 @@ class SegCalc(object):
 
     # ======================================
     def calc_exp_idx(self):
+        # Expose Y Group to Z Group
         return self.calc_iso_exp_idx(self.y_group_idx, self.z_group_idx)
 
     # ======================================
     def calc_iso_idx(self):
+        # Expose a group to itself
         return self.calc_iso_exp_idx(self.y_group_idx, self.y_group_idx)
 
 
@@ -205,20 +208,26 @@ def main(argv):
     # Lets do a quick test, normally this isn't run at the command line
     # Short list for now
     sl = [
-        {'BLACK': 5, 'WHITE': 10, 'TOTAL': 25, 'FIPS': 01, 'LEA': 011},
-        {'BLACK': 5, 'WHITE': 10, 'TOTAL': 25, 'FIPS': 01, 'LEA': 011},
-        {'BLACK': 5, 'WHITE': 10, 'TOTAL': 25, 'FIPS': 01, 'LEA': 011},
-        {'BLACK': 5, 'WHITE': 10, 'TOTAL': 25, 'FIPS': 01, 'LEA': 011},
-        {'BLACK': 5, 'WHITE': 10, 'TOTAL': 25, 'FIPS': 02, 'LEA': 011},
-        {'BLACK': 5, 'WHITE': 10, 'TOTAL': 25, 'FIPS': 02, 'LEA': 011},
-        {'BLACK': 5, 'WHITE': 10, 'TOTAL': 25, 'FIPS': 02, 'LEA': 011},
-        {'BLACK': 5, 'WHITE': 10, 'TOTAL': 25, 'FIPS': 02, 'LEA': 011}
+        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 01, 'LEAID': 011},
+        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 01, 'LEAID': 011},
+        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 01, 'LEAID': 011},
+        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 01, 'LEAID': 011},
+        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 02, 'LEAID': 011},
+        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 02, 'LEAID': 011},
+        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 02, 'LEAID': 011},
+        {'BLACK': 5, 'WHITE': 10, 'MEMBER': 25, 'FIPS': 02, 'LEAID': 011}
     ]
-    idx = {'Y_GROUP': 'BLACK', 'Z_GROUP': 'WHITE', 'TOTAL': 'TOTAL', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEA'}
+    idx = {'Y_GROUP': 'BLACK', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
 
+    # Switch over to real data if interested.
+    # nces = NCESParser(year=2006)
+    # schools = nces.parse(make_dict=True)
+    # sg = SegCalc(schools, idx)
     sg = SegCalc(sl, idx)
-    print sg.calc_exp_idx()
-    print sg.calc_iso_idx()
+
+    import pprint
+    pprint.pprint(sg.calc_exp_idx())
+    pprint.pprint(sg.calc_iso_idx())
 
 # -------------------------------------
 # Drop the script name from the args
