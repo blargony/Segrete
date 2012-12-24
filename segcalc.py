@@ -37,11 +37,13 @@ class SegCalc(object):
     # ======================================
     # Segragation Calculations
     # ======================================
-    def calc_exp_idx(self):
+    def calc_iso_exp_idx(self, yidx, zidx):
         """
-        Calculate the Exposure Index - how much exposure does the minority group
-        get to the majority group?
+        Calculate the Exposure or Isolation Index
+        - Exposure:  How much exposure does the minority group get to the majority group?
+        - Isolation:  How much exposure does a minority group get to itself?
 
+        Exposure:
             Sum(yi/Y * zi/ti) over schools in the category/subcategory
 
         yi = Students in minority group in a School
@@ -49,62 +51,60 @@ class SegCalc(object):
         zi = Students in majority group in a School
         ti = Total Students in the School
 
+        Isolation is the same, but with zi replaced with yi - again how
+        much exposure does the group in interest get to itself?
+
         The plan is to add up all of the terms while keeping track of Y and then divide
         Y out of the sum at the end.
         """
         Y = {}
         Sum = {}
         for school in self.data_iter:
-            yi = school[self.y_group_idx]
-            zi = school[self.z_group_idx]
-            ti = school[self.total_idx]
+            try:
+                yi = school[yidx]
+                zi = school[zidx]
+                ti = school[self.total_idx]
+            except KeyError:
+                print "Problem School:",school.__repr__()
+                continue
+
+            # Compute the term to be summed up
+            # Test for divide by zero and ignore the data point if it happens
+            try:
+                sum = float(yi*zi)/ti
+            except ZeroDivisionError:
+                continue
+
+            # No divided by zero, so add to the sum
+            try:
+                Sum[school[self.cat_idx]] += sum
+            except KeyError:
+                Sum[school[self.cat_idx]] = sum
+
+            # Now sum up all the members of Group Y to divided
+            # out of the final sum
             try:
                 Y[school[self.cat_idx]] += yi
             except KeyError:
                 Y[school[self.cat_idx]] = yi
-            try:
-                Sum[school[self.cat_idx]] += float(yi*zi)/ti
-            except KeyError:
-                Sum[school[self.cat_idx]] = float(yi*zi)/ti
 
+        # import pprint
+        # pprint.pprint(Sum)
+        # pprint.pprint(Y)
         for cat in Sum.keys():
-            Sum[cat] = Sum[cat] / Y[cat]
+            if Sum[cat] > 0.1:
+                Sum[cat] = Sum[cat] / Y[cat]
 
         return Sum
 
     # ======================================
+    def calc_exp_idx(self):
+        return self.calc_iso_exp_idx(self.y_group_idx, self.z_group_idx)
+
+    # ======================================
     def calc_iso_idx(self):
-        """
-        Calculate the Isolation Index - How much does a group encounter only
-        others from the same group?
+        return self.calc_iso_exp_idx(self.y_group_idx, self.y_group_idx)
 
-            Sum(yi/Y * yi/ti) over schools in the category/subcategory
-
-        yi = Students in a group in a School
-        Y = Sum of students in a group in the given category/subcat
-        ti = Total Students in the School
-
-        The plan is to add up all of the terms while keeping track of Y and then divide
-        Y out of the sum at the end.
-        """
-        Y = {}
-        Sum = {}
-        for school in self.data_iter:
-            yi = school[self.y_group_idx]
-            ti = school[self.total_idx]
-            try:
-                Y[school[self.cat_idx]] += yi
-            except KeyError:
-                Y[school[self.cat_idx]] = yi
-            try:
-                Sum[school[self.cat_idx]] += float(yi*yi)/ti
-            except KeyError:
-                Sum[school[self.cat_idx]] = float(yi*yi)/ti
-
-        for cat in Sum.keys():
-            Sum[cat] = Sum[cat] / Y[cat]
-
-        return Sum
 
     # ======================================
     def calc_dis_idx(self):
@@ -162,9 +162,9 @@ class SegCalc(object):
             ti = school[self.total_idx]
 
             try:
-                Num[school[self.cat_idx]] += abs(giy - P[self.cat_idx] * ti)
+                Num[school[self.cat_idx]] += abs(giy - Py[self.cat_idx] * ti)
             except KeyError:
-                Num[school[self.cat_idx]] = abs(giy - P[self.cat_idx] * ti)
+                Num[school[self.cat_idx]] = abs(giy - Py[self.cat_idx] * ti)
 
         # TODO
         # Now calculate the Demoninator
@@ -202,6 +202,7 @@ def main(argv):
 
     sg = SegCalc(sl, idx)
     print sg.calc_exp_idx()
+    print sg.calc_iso_idx()
 
 # -------------------------------------
 # Drop the script name from the args
