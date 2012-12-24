@@ -125,21 +125,34 @@ class SegCalc(object):
 
 
         """
-        # TODO: Repeat for the second group (Z_GROUP)
-        P_temp = {}
+        # Calculate:
+        #   Total Student cout
+        #   Percentage of Group Y
+        #   Percentage of Group Z
+        # Remember to keep them grouped by our geographic region (category)
+        Py = {}
+        Pz = {}
+        T = {}
         for school in self.data_iter:
             giy = school[self.y_group_idx]
+            giz = school[self.z_group_idx]
             ti = school[self.total_idx]
 
             try:
-                P_temp[school[self.cat_idx]][0] += giy
-                P_temp[school[self.cat_idx]][1] += ti
+                Py[school[self.cat_idx]] += giy
+                Pz[school[self.cat_idx]] += giz
+                T[school[self.cat_idx]] += ti
             except KeyError:
-                P_temp[school[self.cat_idx]] = [giy, ti]
+                Py[school[self.cat_idx]] = giy
+                Pz[school[self.cat_idx]] = giz
+                T[school[self.cat_idx]] = ti
 
-        P = {}
-        for cat in P_temp.keys():
-            P[cat] = P_temp[cat][0] / P_temp[cat][1]
+        for cat in Py.keys():
+            Py[cat] = Py[cat] / T[cat]
+            Pz[cat] = Pz[cat] / T[cat]
+
+        # Py/Pz now represent a set of percentages of the student population in
+        # a given group that are in Group Y and Group Z
 
         # TODO: Repeat for the second group (Z_GROUP)
         # Now we have P, we can calculate the numerator
@@ -153,6 +166,7 @@ class SegCalc(object):
             except KeyError:
                 Num[school[self.cat_idx]] = abs(giy - P[self.cat_idx] * ti)
 
+        # TODO
         # Now calculate the Demoninator
         # Iterate over the two or more groups
         Den = {}
