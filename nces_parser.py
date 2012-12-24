@@ -82,6 +82,15 @@ class NCESParser(object):
         self.headers = []
         self.descriptions = {}
         self.index_mode = 0
+        self.save_names = [
+            "FIPS",
+            "FIPST",
+            "BLACK",
+            "WHITE",
+            "MEMBER",
+            "GSHI",
+            "LEAID"
+        ]
 
         if year:
             self.year = year
@@ -136,6 +145,7 @@ class NCESParser(object):
                 if self.index_mode == 0:
                     print "Switching to Index MODE!!!"
                     self.index_mode = 1
+
             if re_definition.search(line):
                 col_name, type, loidx, hiidx, size, description = re_definition.search(line).groups()
             elif re_sub_definition.search(line):
@@ -144,18 +154,15 @@ class NCESParser(object):
                 col_name, loidx, hiidx, size, type, description = re_alt_definition.search(line).groups()
             elif re_alt_sub_definition.search(line):
                 col_name, loidx, hiidx, size, type, description = re_alt_sub_definition.search(line).groups()
-
             elif self.index_mode and re_idx_definition.search(line):
-                col_name, idx, type, description = re_idx_definition.search(line).groups()
+                col_name, loidx, type, description = re_idx_definition.search(line).groups()
+                hiidx = loidx
             else:
                 if self.debug:
                     print line
                 continue
 
-            if self.index_mode:
-                self.add_idx_instr(col_name, idx, type, description)
-            else:
-                self.add_instr(col_name, type, loidx, hiidx, size, description)
+            self.add_instr(col_name, type, loidx, hiidx, size, description)
 
         if self.debug:
             print "=" * 80
@@ -180,22 +187,9 @@ class NCESParser(object):
         if type == 'N':
             pass
 
-        self.parse_instr.append((col_name, type, int(loidx)-1, int(hiidx), description.strip()))
-        self.add_column(col_name, description)
-
-    # --------------------------------------
-    def add_idx_instr(self, col_name, idx, type, description):
-        if self.debug:
-            print "Found Column:  %s - %s" % (col_name, idx)
-
-        # Strip the year off the column if it is present
-        # We store the year in the main data object
-        if col_name[-2:].isdigit():
-            col_name = col_name[:-2]
-
-        # Is it a number?
-        self.parse_instr.append((col_name, type, int(idx)-1, description.strip()))
-        self.add_column(col_name, description)
+        if col_name in self.save_names:
+            self.parse_instr.append((col_name, type, int(loidx)-1, int(hiidx), description.strip()))
+            self.add_column(col_name, description)
 
     # --------------------------------------
     def add_column(self, col_name, description):
@@ -316,7 +310,7 @@ def main():
     print "=" * 80
     print parse
     print "=" * 80
-    print parse.get_idx('GSLO')
+    print parse.get_idx('GSHI')
 
     if args.year:
         schools = parse.parse()
