@@ -14,12 +14,21 @@ import unittest
 # ==============================================================================
 # Constants and RegEx
 # ==============================================================================
-# resistor_name ([node_name] [node_name]) resistor r=[resistance_value] c=0
-re_definition = re.compile(r'^(\w+)\s+(\w+)\s+(\d+)[-](\d+)\s+(\d+)*?\s+(.*)$')
+re_definition = re.compile(r'^(\w+)\s+(\w+)\s+(\d+)[-](\d+)\s+(\d+)[*]?\s+(.*)$')
+
+# Name    Type   Position  Size  Description
+re_definition = re.compile(r'^(\w+)\s+(\w+)\s+(\d+)[-](\d+)\s+(\d+)[*]?\s+(.*)$')
 re_sub_definition = re.compile(r'^\s*[+](\w+)\s+(\w+)\s+(\d+)[-](\d+)\s+(\d+)\s+(.*)$')
+
+# Variable    Start   End     Field   Data
+# Name        Pos.    Pos.    Length  Type    Description
 re_alt_definition = re.compile(r'^(\w+)\s+(\d+)\s+(\d+)\s+(\d+)*?\s+(\w+)\s+(.*)$')
 re_alt_sub_definition = re.compile(r'^\s*[+](\w+)\s+(\d+)\s+(\d+)\s+(\d+)*?\s+(\w+)\s+(.*)$')
 
+# Index Data Format
+# Variable             Data
+# Name          Order  Type   Description
+re_idx_definition = re.compile(r'^(\w+)\s+(\d+)[*]?\s+(\w+)\s+(.*)$')
 
 datafile_name = "nces%02d-%02d.txt"
 formatfile_name = "nces%02d-%02d_layout.txt"
@@ -72,6 +81,7 @@ class NCESParser(object):
         self.header_count = 0
         self.headers = []
         self.descriptions = {}
+        self.mode_idx = 0
 
         if year:
             self.year = year
@@ -85,7 +95,10 @@ class NCESParser(object):
     def __repr__(self):
         results = ""
         for instr in self.parse_instr:
-            results += "Name:  %s, Size: %d\n" % (instr[0], instr[3] - instr[2] + 1)
+            if self.mode_idx:
+                results += "Name:  %s, Index: %d\n" % (instr[0], instr[2])
+            else:
+                results += "Name:  %s, Size: %d\n" % (instr[0], instr[3] - instr[2] + 1)
         return results
 
     # --------------------------------------
@@ -127,10 +140,18 @@ class NCESParser(object):
                 col_name, loidx, hiidx, size, type, description = re_alt_definition.search(line).groups()
             elif re_alt_sub_definition.search(line):
                 col_name, loidx, hiidx, size, type, description = re_alt_sub_definition.search(line).groups()
+
+            elif re_idx_definition.search(line):
+                self.mode_idx = 1
+                col_name, idx, type, description = re_idx_definition.search(line).groups()
             else:
                 print line
                 continue
-            self.add_instr(col_name, type, loidx, hiidx, size, description)
+
+            if self.mode_idx:
+                self.add_idx_instr(col_name, idx, type, description)
+            else:
+                self.add_instr(col_name, type, loidx, hiidx, size, description)
 
         if self.debug:
             print "=" * 80
@@ -152,8 +173,24 @@ class NCESParser(object):
             col_name = col_name[:-2]
 
         # Is it a number?
+        if type == 'N':
+            pass
 
         self.parse_instr.append((col_name, type, int(loidx)-1, int(hiidx), description.strip()))
+        self.add_column(col_name, description)
+
+    # --------------------------------------
+    def add_idx_instr(self, col_name, idx, type, description):
+        if self.debug:
+            print "Found Column:  %s - %s" % (col_name, idx)
+
+        # Strip the year off the column if it is present
+        # We store the year in the main data object
+        if col_name[-2:].isdigit():
+            col_name = col_name[:-2]
+
+        # Is it a number?
+        self.parse_instr.append((col_name, type, int(idx)-1, description.strip()))
         self.add_column(col_name, description)
 
     # --------------------------------------
@@ -196,13 +233,19 @@ class NCESParser(object):
         else:
             fname = self.get_datafile_name()
         fh = open(fname, 'rb')
+        if self.mode_idx:
+            fh = csv.reader(fh, dialect='excel-tab')
 
         # Pop the header line
         line = fh.next()
 
         self.schools = []
-        for line in fh:
-            self.schools.append(self.parse_line(line))
+        if self.mode_idx:
+            for line in fh:
+                self.schools.append(line)  # CSV already breaks it apart
+        else:
+            for line in fh:
+                self.schools.append(self.parse_line(line))
 
         if self.debug:
             print len(self.schools)
