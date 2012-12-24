@@ -87,7 +87,7 @@ class NCESParser(object):
             "BLACK",
             "HISP",
             "ASIAN",
-            "IND",
+            "AM",
             "WHITE",
             "MEMBER",
             "FRELCH",
@@ -172,8 +172,12 @@ class NCESParser(object):
                 type = 'N'
             if col_name == "FIPS":
                 type = 'N'
-            if col_name == "FRE" + str(self.year%100):
+            if col_name == "FRE%02d" % (self.year%100):
                 col_name = "FRELCH"
+            if col_name == ("IND%02d" % (self.year%100)):
+                col_name = "AM"
+            elif col_name == "IND":
+                col_name = "AM"
 
             self.add_instr(col_name, type, loidx, hiidx, size, description)
 
