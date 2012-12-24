@@ -159,19 +159,25 @@ class SegCalc(object):
             giz = school[self.z_group_idx]
             ti = school[self.total_idx]
 
+            # Make sure to create an entry for
+            # every school, even if the data is bogus
+            try:
+                test = Py[school[self.cat_idx]]
+                test = Pz[school[self.cat_idx]]
+                test = T[school[self.cat_idx]]
+            except KeyError:
+                Py[school[self.cat_idx]] = 0
+                Pz[school[self.cat_idx]] = 0
+                T[school[self.cat_idx]] = 0
+
             # Negative numbers are used to represent missing data, don't
             # include these in the calculations
             if giy < 0 or giz < 0 or ti < 0:
                 continue
 
-            try:
-                Py[school[self.cat_idx]] += giy
-                Pz[school[self.cat_idx]] += giz
-                T[school[self.cat_idx]] += ti
-            except KeyError:
-                Py[school[self.cat_idx]] = giy
-                Pz[school[self.cat_idx]] = giz
-                T[school[self.cat_idx]] = ti
+            Py[school[self.cat_idx]] += giy
+            Pz[school[self.cat_idx]] += giz
+            T[school[self.cat_idx]] += ti
 
         for cat in T.keys():
             try:
