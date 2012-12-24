@@ -199,16 +199,16 @@ class SegCalc(object):
             giz = school[self.z_group_idx]
             ti = school[self.total_idx]
 
-            # Negative numbers are used to represent missing data, don't
-            # include these in the calculations
-            if giy < 0 or giz < 0 or ti < 0:
-                continue
-
             # Make sure the datastructure exists
             try:
                 test = Num[school[self.cat_idx]]
             except KeyError:
                 Num[school[self.cat_idx]] = 0.0
+
+            # Negative numbers are used to represent missing data, don't
+            # include these in the calculations
+            if giy < 0 or giz < 0 or ti < 0:
+                continue
 
             # Add the terms for both groups here
             # Currently we are limited to the dissimilarily between
