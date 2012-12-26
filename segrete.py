@@ -148,6 +148,7 @@ def main(argv):
     # Lets calculate all the data first
     year_range = range(1987, 2011)
 
+    """
     idx = {'Y_GROUP': 'BLACK', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
     idxes = calc_idxes(year_range, idx)
     save_report(year_range, idxes, "black_" + args.outfile)
@@ -159,8 +160,9 @@ def main(argv):
     idx = {'Y_GROUP': 'ASIAN', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
     idxes = calc_idxes(year_range, idx)
     save_report(year_range, idxes, "asian_" + args.outfile)
+    """
 
-    idx = {'Y_GROUP': 'IND', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
+    idx = {'Y_GROUP': 'AM', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
     idxes = calc_idxes(year_range, idx)
     save_report(year_range, idxes, "native_amer_" + args.outfile)
 
