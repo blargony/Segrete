@@ -57,12 +57,16 @@ class SegCalc(object):
         if self.match == False:
             return self.data
         else:
+            if self.match_val.isdigit():
+                match_int_val = int(self.match_val)
             try:
                 return self._filtered_data
             except AttributeError:
                 self._filtered_data = []
                 for data in self.data:
                     if data[self.match_idx] == self.match_val:
+                        self._filtered_data.append(data)
+                    if data[self.match_idx] == match_int_val:
                         self._filtered_data.append(data)
                 return self._filtered_data
 
