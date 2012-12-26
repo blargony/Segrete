@@ -180,6 +180,8 @@ class NCESParser(object):
                 col_name = "AM"
             elif col_name == "IND":
                 col_name = "AM"
+            if col_name == "LEAID":
+                type = 'AN'
 
             self.add_instr(col_name, type, loidx, hiidx, size, description)
 
