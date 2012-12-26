@@ -92,7 +92,9 @@ class NCESParser(object):
             "MEMBER",
             "FRELCH",
             "GSHI",
-            "LEAID"
+            "GSLO",
+            "LEAID",
+            "LEANM"
         ]
 
         if year:
