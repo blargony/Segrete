@@ -32,9 +32,45 @@ class SegCalc(object):
         self.data_iter = data_iter
         self.y_group_idx = index_dict['Y_GROUP']  # Minority Group Student Count
         self.z_group_idx = index_dict['Z_GROUP']  # Majority Group Student Count
-        self.total_idx = index_dict['TOTAL']    # Total Student Count
+        self.total_idx = index_dict['TOTAL']      # Total Student Count
         self.cat_idx = index_dict['CATEGORY']     # Index to Categorize along (state, district, etc)
         self.sub_cat_idx = index_dict['SUB_CAT']  # Index to Sub Categorize along (grades, district, zip, etc)
+
+        # Skip items that don't match item[idx] == val
+        try:
+            self.match = True
+            self.match_idx = index_dict['MATCH_IDX']
+            self.match_val = index_dict['MATCH_VAL']
+        except KeyError:
+            self.match = False
+
+    # ======================================
+    # Segragation Calculations
+    # ======================================
+    def calc_totals(self):
+        """
+        Get a report on the total student count and so forth
+        """
+        Total = {}
+        for school in self.data_iter:
+            try:
+                yi = school[self.z_group_idx]
+                zi = school[self.y_group_idx]
+                ti = school[self.total_idx]
+            except KeyError:
+                raise Exception("Problem School:",school.__repr__())
+
+            # Make sure the datastructure exists
+            try:
+                test = Total[school[self.cat_idx]]
+            except KeyError:
+                Total[school[self.cat_idx]] = [0, 0, 0]
+
+            Total[school[self.cat_idx]][0] += yi
+            Total[school[self.cat_idx]][1] += zi
+            Total[school[self.cat_idx]][2] += ti
+
+        return Total
 
     # ======================================
     # Segragation Calculations
