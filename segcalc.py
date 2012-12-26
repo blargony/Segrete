@@ -22,14 +22,14 @@ class SegCalc(object):
     """
     A segregation calculating object.
     """
-    def __init__(self, data_iter, index_dict):
+    def __init__(self, data_list, index_dict):
         """
         Set a dataset iterator object that we can step through
         and a dictionary of indexes for extracting the information
         from the dataobjects turned off by the dataset iterator
         """
         self.debug = 0
-        self.data_iter = data_iter
+        self.data = data_list
         self.y_group_idx = index_dict['Y_GROUP']  # Minority Group Student Count
         self.z_group_idx = index_dict['Z_GROUP']  # Majority Group Student Count
         self.total_idx = index_dict['TOTAL']      # Total Student Count
@@ -45,17 +45,51 @@ class SegCalc(object):
             self.match = False
 
     # ======================================
-    # Segragation Calculations
+    # Support Functions
+    # ======================================
+    @property
+    def filtered_data(self):
+        """
+        Filter the data per the requested matching
+        data index and value.  Cache the results for
+        later use
+        """
+        if self.match == False:
+            return self.data
+        else:
+            try:
+                return self._filtered_data
+            except AttributeError:
+                self._filtered_data = []
+                for data in self.data:
+                    if data[self.match_idx] == self.match_val:
+                        self._filtered_data.append(data)
+                return self._filtered_data
+
+    # ======================================
+    def get_idxed_val(self, idx_x, idx_y):
+        """
+        Get a dictionary mapping one index to another
+        """
+        Mapping = {}
+        for school in self.filtered_data:
+            try:
+                x = school[idx_x]
+                y = school[idx_y]
+            except KeyError:
+                raise Exception("Problem School:",school.__repr__())
+
+            Mapping[x] = y
+        return Mapping
+
     # ======================================
     def calc_totals(self):
         """
         Get a report on the total student count and so forth
         """
         Total = {}
-        for school in self.data_iter:
+        for school in self.filtered_data:
             try:
-                yi = school[self.z_group_idx]
-                zi = school[self.y_group_idx]
                 ti = school[self.total_idx]
             except KeyError:
                 raise Exception("Problem School:",school.__repr__())
@@ -64,11 +98,9 @@ class SegCalc(object):
             try:
                 test = Total[school[self.cat_idx]]
             except KeyError:
-                Total[school[self.cat_idx]] = [0, 0, 0]
+                Total[school[self.cat_idx]] = 0
 
-            Total[school[self.cat_idx]][0] += yi
-            Total[school[self.cat_idx]][1] += zi
-            Total[school[self.cat_idx]][2] += ti
+            Total[school[self.cat_idx]] += ti
 
         return Total
 
@@ -97,7 +129,7 @@ class SegCalc(object):
         """
         Y = {}
         Sum = {}
-        for school in self.data_iter:
+        for school in self.filtered_data:
             try:
                 yi = school[yidx]
                 zi = school[zidx]
@@ -190,7 +222,7 @@ class SegCalc(object):
         Py = {}
         Pz = {}
         T = {}
-        for school in self.data_iter:
+        for school in self.filtered_data:
             giy = school[self.y_group_idx]
             giz = school[self.z_group_idx]
             ti = school[self.total_idx]
@@ -236,7 +268,7 @@ class SegCalc(object):
 
         # Now we have Py/Pz, we can calculate the numerator
         Num = {}
-        for school in self.data_iter:
+        for school in self.filtered_data:
             giy = school[self.y_group_idx]
             giz = school[self.z_group_idx]
             ti = school[self.total_idx]
