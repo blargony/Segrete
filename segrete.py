@@ -69,12 +69,26 @@ fips_to_st = {
 }
 
 
+# Maximum number of rows to report in an output file.
+MAX_REPORT = 200
+
 # ==============================================================================
 # Functions
 # ==============================================================================
-def calc_idxes(year_range, idx):
+def calc_idxes(segcalc):
     """
     Call down to get all the various measures calculated
+    """
+    exp_idx = segcalc.calc_exp_idx()
+    iso_idx = segcalc.calc_iso_idx()
+    dis_idx = segcalc.calc_dis_idx()
+    tot_idx = segcalc.calc_totals()
+    return (exp_idx, iso_idx, dis_idx, tot_idx)
+
+# --------------------------------------
+def calc_idxes_range(year_range, idx):
+    """
+    Get all the results over the years
     """
     exp_idx = []
     iso_idx = []
@@ -91,47 +105,50 @@ def calc_idxes(year_range, idx):
     return (exp_idx, iso_idx, dis_idx)
 
 # -------------------------------------
-def save_report(year_range, idxes, filename):
-    # Break out the calculated data
-    exp_idx, iso_idx, dis_idx = idxes
+def save_report(year_range, idxes, category_list, category_txt, filename):
+    """
+    Write out a bunch of report data to a spreadsheet report.
+    Report will be a 2D matrix:
+        - X-Axis = school year
+        - Y-Axis = 'Category' (FIPS Code, District, etc...)
 
-    # Now lets format it into a report.
-    # Report will be a 2D matrix
-    # X-Axis = school year
-    # Y-Axis = FIPS Code
+    Notes:
+        - idxes contains the data
+        - worksheets is a list of XLS worksheets, one per report in idxes
+    """
     wb = Workbook()
     ews = wb.add_sheet('Exposure Index')
     iws = wb.add_sheet('Isolation Index')
     dws = wb.add_sheet('Dissimilarity Index')
+    size = wb.add_sheet('Student Count')
 
-    worksheets = [ews, iws, dws]
+    worksheets = [ews, iws, dws, size]
 
     # Create the headers/labels row/col
     for ws in worksheets:
-        ws.write(0, 0, "State/Year")
-        for j, st in enumerate(fips_to_st):
-            ws.write(j+1, 0, fips_to_st[st][0])
+        ws.write(0, 0, "LEA/Year")
+        for j, st in enumerate(category_list):
+            if j < MAX_REPORT:
+                if len(category_txt[st]) == 2: # Don't change caps for State abbr.
+                    ws.write(j+1, 0, category_txt[st])
+                else:
+                    ws.write(j+1, 0, category_txt[st].title())
 
     # Print out the data
     for i, year in enumerate(year_range):
         print "Write Report for:  %d" % year
         for ws in worksheets:
             ws.write(0, i+1, year)
-        for j, st in enumerate(fips_to_st.keys()):
-            if exp_idx[i][st] < 0.001:
-                ews.write(j+1, i+1, "")
-            else:
-                ews.write(j+1, i+1, exp_idx[i][st])
-
-            if iso_idx[i][st] < 0.001:
-                iws.write(j+1, i+1, "")
-            else:
-                iws.write(j+1, i+1, iso_idx[i][st])
-
-            if dis_idx[i][st] < 0.001:
-                dws.write(j+1, i+1, "")
-            else:
-                dws.write(j+1, i+1, dis_idx[i][st])
+        for j, st in enumerate(category_list):
+            if j < MAX_REPORT:
+                for k, idx in enumerate(idxes):
+                    try:
+                        if idx[i][st] < 0.001:
+                            worksheets[k].write(j+1, i+1, "")
+                        else:
+                            worksheets[k].write(j+1, i+1, idx[i][st])
+                    except KeyError:
+                        worksheets[k].write(j+1, i+1, "")
     wb.save(filename)
 
 # -------------------------------------
@@ -141,30 +158,68 @@ def main(argv):
     parser = argparse.ArgumentParser(description='Segregation Report Generator')
     parser.add_argument('--year', action='store', dest='year', required=False, type=int,
             help='NCES Data Year')
-    parser.add_argument('--outfile', action='store', dest='outfile', required=False,
+    parser.add_argument('--outfile', action='store', dest='outfile', required=True,
             help='Report File')
+    parser.add_argument('--category', action='store', dest='category', required=False,
+            help='Which Category do we sort the results by?')
+    parser.add_argument('--match_idx', action='store', dest='match_idx', required=False,
+            help='Only use data points that match some criterion')
+    parser.add_argument('--match_val', action='store', dest='match_val', required=False,
+            help='Only use data points that match some criterion')
+    parser.add_argument('-debug', action='store_true', dest='debug', required=False,
+            help='Debug Mode')
     args = parser.parse_args()
 
+    if args.category:
+        category = args.category
+    else:
+        category = 'FIPS'
+
     # Lets calculate all the data first
-    year_range = range(1987, 2011)
+    if args.debug:
+        year_range = [1987]
+        groups = ['BLACK']
+    else:
+        year_range = range(1987, 2011)
+        groups = ['BLACK', 'HISP', 'ASIAN', 'AM']
 
-    """
-    idx = {'Y_GROUP': 'BLACK', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
-    idxes = calc_idxes(year_range, idx)
-    save_report(year_range, idxes, "black_" + args.outfile)
+    # Default search query
+    idx = {
+        'Y_GROUP': "BLACK",
+        'Z_GROUP': 'WHITE',
+        'TOTAL': 'MEMBER',
+        'CATEGORY': category,
+        'SUB_CAT': 'LEAID',
+    }
+    if args.match_idx:
+        idx['MATCH_IDX'] = args.match_idx
+        idx['MATCH_VAL'] = args.match_val
 
-    idx = {'Y_GROUP': 'HISP', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
-    idxes = calc_idxes(year_range, idx)
-    save_report(year_range, idxes, "hisp_" + args.outfile)
+    idxes = [[], [], [], []]
+    for group in groups:
+        for year in year_range:
+            print "Loading NCES Data from:  %d" % year
+            nces = NCESParser(year=year)
+            schools = nces.parse(make_dict=True)
+            # Get our data query ready
+            idx['Y_GROUP'] = group
+            segcalc = SegCalc(schools, idx)
+            if category == 'LEAID':
+                category_lut = segcalc.get_idxed_val('LEAID', 'LEANM')
+            elif category == 'FIPS':
+                category_lut = dict(zip(fips_to_st.keys(), [fips_to_st[key][0] for key in fips_to_st.keys()]))
 
-    idx = {'Y_GROUP': 'ASIAN', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
-    idxes = calc_idxes(year_range, idx)
-    save_report(year_range, idxes, "asian_" + args.outfile)
-    """
+            exp,iso,dis,tot = calc_idxes(segcalc)
+            category_by_size = sorted(tot, key=tot.get, reverse=True)
+            # Filter out keys absent from our report tables.
+            category_by_size = [i for i in category_by_size if i in category_lut.keys()]
 
-    idx = {'Y_GROUP': 'AM', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
-    idxes = calc_idxes(year_range, idx)
-    save_report(year_range, idxes, "native_amer_" + args.outfile)
+            idxes[0].append(exp)
+            idxes[1].append(iso)
+            idxes[2].append(dis)
+            idxes[3].append(tot)
+
+        save_report(year_range, idxes, category_by_size, category_lut, group.lower() + '_' + args.outfile)
 
 # -------------------------------------
 # Drop the script name from the args
