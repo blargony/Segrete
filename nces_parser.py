@@ -258,47 +258,68 @@ class NCESParser(object):
                 except ValueError:
                     field = 0    # Squash invalid values to 0 for fields of type 'Number'
             else:
-                field.strip()    # Otherwise clean up the string
+                field = field.strip()    # Otherwise clean up the string
             entry.append(field)
 
         return entry
 
     # --------------------------------------
-    def parse(self, datafile="", make_dict=False):
-
+    def parse_orig(self, datafile="", make_dict=False):
         if datafile:
             fname = datafile
         else:
             fname = self.get_datafile_name()
-            saved_fname = self.get_saved_datafile_name()
 
-        try:
-            fh = open(saved_fname, 'rb')
+        fh = open(fname, 'rb')
+        if self.index_mode:
+            fh = csv.reader(fh, dialect='excel-tab')
+            line = fh.next() # Pop the header line
+
+        self.schools = []
+        for line in fh:
             if make_dict:
-                cfh = csv.reader(fh)
-                self.headers = cfh.next()
+                self.schools.append(self.make_dict(self.parse_line(line)))
             else:
-                cfh = csv.DictReader(fh)
-                self.headers = cfh.fieldnames
-            self.schools = []
-            for line in cfh:
-                self.schools.append(line)
-        except IOError:
-            fh = open(fname, 'rb')
-            if self.index_mode:
-                fh = csv.reader(fh, dialect='excel-tab')
-                line = fh.next() # Pop the header line
-
-            self.schools = []
-            for line in fh:
-                if make_dict:
-                    self.schools.append(self.make_dict(self.parse_line(line)))
-                else:
-                    self.schools.append(self.parse_line(line))
+                self.schools.append(self.parse_line(line))
 
         if self.debug:
             print len(self.schools)
         return self.schools
+
+
+    # --------------------------------------
+    def parse_saved(self, make_dict=False):
+
+        saved_fname = self.get_saved_datafile_name()
+        fh = open(saved_fname, 'rb')
+
+        if make_dict:
+            cfh = csv.DictReader(fh)
+            self.headers = cfh.fieldnames
+        else:
+            cfh = csv.reader(fh)
+            self.headers = cfh.next()
+
+        self.schools = []
+        for line in cfh:
+            self.schools.append(line)
+
+        if self.debug:
+            print len(self.schools)
+        return self.schools
+
+
+    # --------------------------------------
+    def parse(self, datafile="", make_dict=False, forced_orig=False):
+        if forced_orig or datafile:
+            return self.parse_orig(datafile, make_dict)
+        else:
+            saved_fname = self.get_saved_datafile_name()
+            try:
+                open(saved_fname, 'rb')
+                return self.parse_saved(make_dict)
+            except IOError:
+                return self.parse_orig(datafile, make_dict)
 
     # --------------------------------------
     def make_dict(self, school):
@@ -317,8 +338,10 @@ class NCESParser(object):
             fname = self.get_saved_datafile_name()
 
         fh = open(fname, 'wb')
-        cfh = csv.writer(fh)
+        cfh = csv.writer(fh, csv.QUOTE_NONNUMERIC)
         cfh.writerow(self.get_headers())
+
+        print "Saving %d Entries to CSV File %s" % (len(self.schools), fname)
         for school in self.schools:
             if self.debug:
                 print school
@@ -360,12 +383,12 @@ def main():
     # Actually do the work we intend to do here
     # -------------------------------------
     if args.update_csv:
-        for year in range(1987, 1988):
+        for year in range(1987, 2011):
             print "=" * 80
             print "Saving out a reduced dataset for %d" % year
             print "=" * 80
             parse = NCESParser(year=year, debug=args.debug)
-            parse.parse()
+            parse.parse(forced_orig=True)
             parse.save_parsed_data()
     else:
         if args.year:
