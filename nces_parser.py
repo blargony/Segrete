@@ -84,6 +84,11 @@ class NCESParser(object):
         self.index_mode = 0
         self.save_names = [
             "FIPS",
+            "LEAID",
+            "LEANM",
+            "SCHNAM",
+            "CITY",
+            "ST",
             "BLACK",
             "HISP",
             "ASIAN",
@@ -92,9 +97,7 @@ class NCESParser(object):
             "MEMBER",
             "FRELCH",
             "GSHI",
-            "GSLO",
-            "LEAID",
-            "LEANM"
+            "GSLO"
         ]
 
         if year:
