@@ -31,6 +31,7 @@ re_alt_sub_definition = re.compile(r'^\s*[+](\w+)\s+(\d+)\s+(\d+)\s+(\d+)*?\s+(\
 re_idx_definition = re.compile(r'^[+]?(\w+)\s+(\d+)[*]?\s+(\w+)\s+(.*)$')
 
 datafile_name = "nces%02d-%02d.txt"
+saved_datafile_name = "nces%02d-%02d.csv"
 formatfile_name = "nces%02d-%02d_layout.txt"
 
 # ==============================================================================
@@ -125,6 +126,10 @@ class NCESParser(object):
     # --------------------------------------
     def get_datafile_name(self):
         return self.get_filename(datafile_name)
+
+    # --------------------------------------
+    def get_saved_datafile_name(self):
+        return self.get_filename(saved_datafile_name)
 
     # --------------------------------------
     def get_filename(self, name_str):
@@ -224,7 +229,7 @@ class NCESParser(object):
 
     # --------------------------------------
     def get_headers(self):
-        return ",".join(self.header.keys())
+        return self.headers
 
     # --------------------------------------
     def get_idx(self, col_name):
@@ -265,17 +270,31 @@ class NCESParser(object):
             fname = datafile
         else:
             fname = self.get_datafile_name()
-        fh = open(fname, 'rb')
-        if self.index_mode:
-            fh = csv.reader(fh, dialect='excel-tab')
-            line = fh.next() # Pop the header line
+            saved_fname = self.get_saved_datafile_name()
 
-        self.schools = []
-        for line in fh:
+        try:
+            fh = open(saved_fname, 'rb')
             if make_dict:
-                self.schools.append(self.make_dict(self.parse_line(line)))
+                cfh = csv.reader(fh)
+                self.headers = cfh.next()
             else:
-                self.schools.append(self.parse_line(line))
+                cfh = csv.DictReader(fh)
+                self.headers = cfh.fieldnames
+            self.schools = []
+            for line in cfh:
+                self.schools.append(line)
+        except IOError:
+            fh = open(fname, 'rb')
+            if self.index_mode:
+                fh = csv.reader(fh, dialect='excel-tab')
+                line = fh.next() # Pop the header line
+
+            self.schools = []
+            for line in fh:
+                if make_dict:
+                    self.schools.append(self.make_dict(self.parse_line(line)))
+                else:
+                    self.schools.append(self.parse_line(line))
 
         if self.debug:
             print len(self.schools)
@@ -286,6 +305,24 @@ class NCESParser(object):
         if self.debug:
             print school
         return dict(zip(self.headers, school))
+
+    # --------------------------------------
+    def save_parsed_data(self, filename=""):
+        """
+        Save out the parsed data
+        """
+        if filename:
+            fname = filename
+        else:
+            fname = self.get_saved_datafile_name()
+
+        fh = open(fname, 'wb')
+        cfh = csv.writer(fh)
+        cfh.writerow(self.get_headers())
+        for school in self.schools:
+            if self.debug:
+                print school
+            cfh.writerow(school)
 
 # *****************************************************************************
 # Unit Tests
@@ -312,6 +349,8 @@ def main():
             help='NCES Data File Record Layout')
     parser.add_argument('--datafile', action='store', dest='datafile', required=False,
             help='NCES Data File')
+    parser.add_argument('-update_csv', action='store_true', dest='update_csv', required=False,
+            help='NCES Data File')
     parser.add_argument('-debug', action='store_true',
             help='Print Debug Messages')
     args = parser.parse_args()
@@ -320,45 +359,52 @@ def main():
     # -------------------------------------
     # Actually do the work we intend to do here
     # -------------------------------------
-    if args.year:
-        parse = NCESParser(year=args.year, debug=args.debug)
-    elif args.formatfile:
-        parse = NCESParser(formatfile=args.formatfile, debug=args.debug)
+    if args.update_csv:
+        for year in range(1987, 1988):
+            print "=" * 80
+            print "Saving out a reduced dataset for %d" % year
+            print "=" * 80
+            parse = NCESParser(year=year, debug=args.debug)
+            parse.parse()
+            parse.save_parsed_data()
     else:
-        raise Exception("Please select a year or an NCES Record Layout file name")
+        if args.year:
+            parse = NCESParser(year=args.year, debug=args.debug)
+        elif args.formatfile:
+            parse = NCESParser(formatfile=args.formatfile, debug=args.debug)
+        else:
+            raise Exception("Please select a year or an NCES Record Layout file name")
 
-    print "=" * 80
-    print parse
-    print "=" * 80
-    print parse.get_idx('GSHI')
+        print "=" * 80
+        print parse
+        print "=" * 80
+        print parse.get_idx('GSHI')
 
-    if args.year:
-        schools = parse.parse()
-    elif args.formatfile:
-        schools = parse.parse(args.datafile)
-    else:
-        raise Exception("Please define a year when constructing or specify an NCES Datefile Layout file name")
+        if args.year:
+            schools = parse.parse()
+        elif args.formatfile:
+            schools = parse.parse(args.datafile)
+        else:
+            raise Exception("Please define a year when constructing or specify an NCES Datefile Layout file name")
 
-    print "=" * 80
-    print len(schools)
+        print "=" * 80
+        print len(schools)
 
-    print "=" * 80
-    print schools[0]
-    print schools[22000]
-    import pprint
-    pprint.pprint(parse.make_dict(schools[22000]))
+        print "=" * 80
+        print schools[0]
+        print schools[22000]
+        import pprint
+        pprint.pprint(parse.make_dict(schools[22000]))
 
-    print "=" * 80
-    print "Headers"
-    print "=" * 80
-    print parse.headers
+        print "=" * 80
+        print "Headers"
+        print "=" * 80
+        print parse.headers
 
-    print "=" * 80
-    print "Descriptions"
-    print "=" * 80
-    pprint.pprint(parse.descriptions)
-
-
+        print "=" * 80
+        print "Descriptions"
+        print "=" * 80
+        pprint.pprint(parse.descriptions)
 
 # -------------------------------------
 # Drop the script name from the args
