@@ -87,14 +87,21 @@ class SegCalc(object):
         return Mapping
 
     # ======================================
-    def calc_totals(self):
+    def calc_totals(self, idx=None):
         """
         Get a report on the total student count and so forth
         """
+        if idx == 'Y_GROUP':
+            local_idx = self.y_group_idx
+        elif idx == 'Z_GROUP':
+            local_idx = self.z_group_idx
+        else:
+            local_idx = self.total_idx
+
         Total = {}
         for school in self.filtered_data:
             try:
-                ti = school[self.total_idx]
+                ti = school[local_idx]
             except KeyError:
                 raise Exception("Problem School:",school.__repr__())
 
