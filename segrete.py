@@ -164,20 +164,20 @@ def save_report(year_range, idxes, category_list, category_txt, filename):
 # -------------------------------------
 def main(argv):
     parser = argparse.ArgumentParser(description='Segregation Report Generator')
-    parser.add_argument('--year', action='store', dest='year', required=False, type=int,
-            help='NCES Data Year')
     parser.add_argument('--outfile', action='store', dest='outfile', required=True,
-            help='Report File')
+            help='Report Filename')
     parser.add_argument('--category', action='store', dest='category', required=False,
             help='Which Category do we sort the results by?')
     parser.add_argument('--match_idx', action='store', dest='match_idx', required=False,
             help='Only use data points that match some criterion')
     parser.add_argument('--match_val', action='store', dest='match_val', required=False,
-            help='Only use data points that match some criterion')
+            help='Value to match when using --match_idx')
     parser.add_argument('--group', action='store', dest='group', required=False,
-            help='Only use data points that match some criterion')
+            help='Override the default list of Minority Groups')
+    parser.add_argument('--year', action='store', dest='year', required=False, type=int,
+            help='Override the default list of years to report on')
     parser.add_argument('--max_record', action='store', dest='max_record', required=False,
-            help='Only use data points that match some criterion')
+            help='Override the default number of items to report')
     parser.add_argument('-debug', action='store_true', dest='debug', required=False,
             help='Debug Mode')
     args = parser.parse_args()
@@ -195,9 +195,11 @@ def main(argv):
         year_range = range(1987, 2011)
         groups = ['BLACK', 'HISP', 'ASIAN', 'AM']
 
+    # Override the default years/groups per command line requests
     if args.group:
         groups = [args.group]
-
+    if args.year:
+        year_range = [args.year]
     if args.max_record:
         MAX_RECORD = args.max_record
 
