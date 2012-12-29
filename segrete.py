@@ -70,7 +70,7 @@ fips_to_st = {
 
 
 # Maximum number of rows to report in an output file.
-MAX_REPORT = 200
+MAX_RECORD = 100
 
 # ==============================================================================
 # Functions
@@ -128,7 +128,7 @@ def save_report(year_range, idxes, category_list, category_txt, filename):
     for ws in worksheets:
         ws.write(0, 0, "LEA/Year")
         for j, st in enumerate(category_list):
-            if j < MAX_REPORT:
+            if j < MAX_RECORD:
                 if len(category_txt[st]) == 2: # Don't change caps for State abbr.
                     ws.write(j+1, 0, category_txt[st])
                 else:
@@ -140,7 +140,7 @@ def save_report(year_range, idxes, category_list, category_txt, filename):
         for ws in worksheets:
             ws.write(0, i+1, year)
         for j, st in enumerate(category_list):
-            if j < MAX_REPORT:
+            if j < MAX_RECORD:
                 for k, idx in enumerate(idxes):
                     try:
                         if idx[i][st] < 0.001:
@@ -166,6 +166,10 @@ def main(argv):
             help='Only use data points that match some criterion')
     parser.add_argument('--match_val', action='store', dest='match_val', required=False,
             help='Only use data points that match some criterion')
+    parser.add_argument('--group', action='store', dest='group', required=False,
+            help='Only use data points that match some criterion')
+    parser.add_argument('--max_record', action='store', dest='max_record', required=False,
+            help='Only use data points that match some criterion')
     parser.add_argument('-debug', action='store_true', dest='debug', required=False,
             help='Debug Mode')
     args = parser.parse_args()
@@ -182,6 +186,12 @@ def main(argv):
     else:
         year_range = range(1987, 2011)
         groups = ['BLACK', 'HISP', 'ASIAN', 'AM']
+
+    if args.group:
+        groups = [args.group]
+
+    if args.max_record:
+        MAX_RECORD = args.max_record
 
     # Default search query
     idx = {
@@ -201,6 +211,9 @@ def main(argv):
             print "Loading NCES Data from:  %d" % year
             nces = NCESParser(year=year)
             schools = nces.parse(make_dict=True)
+            print "Finished Loading NCES Data from:  %d" % year
+            if args.debug:
+                print schools
             # Get our data query ready
             idx['Y_GROUP'] = group
             segcalc = SegCalc(schools, idx)
@@ -209,10 +222,12 @@ def main(argv):
             elif category == 'FIPS':
                 category_lut = dict(zip(fips_to_st.keys(), [fips_to_st[key][0] for key in fips_to_st.keys()]))
 
+            print "Performing Calculations on Data from:  %d" % year
             exp,iso,dis,tot = calc_idxes(segcalc)
             category_by_size = sorted(tot, key=tot.get, reverse=True)
             # Filter out keys absent from our report tables.
             category_by_size = [i for i in category_by_size if i in category_lut.keys()]
+            print "Finished Performing Calculations on Data from:  %d" % year
 
             idxes[0].append(exp)
             idxes[1].append(iso)
