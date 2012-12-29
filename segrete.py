@@ -79,11 +79,18 @@ def calc_idxes(segcalc):
     """
     Call down to get all the various measures calculated
     """
+    print "Calculating Exposure Index"
     exp_idx = segcalc.calc_exp_idx()
+    print "Calculating Isolation Index"
     iso_idx = segcalc.calc_iso_idx()
+    print "Calculating Dissimilarity Index"
     dis_idx = segcalc.calc_dis_idx()
+    print "Calculating Total Minority Students"
+    min_idx = segcalc.calc_totals(idx='Y_GROUP')
+    print "Calculating Total Student Count"
     tot_idx = segcalc.calc_totals()
-    return (exp_idx, iso_idx, dis_idx, tot_idx)
+    print "Done with Calculations"
+    return (exp_idx, iso_idx, dis_idx, min_idx, tot_idx)
 
 # --------------------------------------
 def calc_idxes_range(year_range, idx):
@@ -120,9 +127,10 @@ def save_report(year_range, idxes, category_list, category_txt, filename):
     ews = wb.add_sheet('Exposure Index')
     iws = wb.add_sheet('Isolation Index')
     dws = wb.add_sheet('Dissimilarity Index')
+    min = wb.add_sheet('Minority Student Count')
     size = wb.add_sheet('Student Count')
 
-    worksheets = [ews, iws, dws, size]
+    worksheets = [ews, iws, dws, min, size]
 
     # Create the headers/labels row/col
     for ws in worksheets:
@@ -181,7 +189,7 @@ def main(argv):
 
     # Lets calculate all the data first
     if args.debug:
-        year_range = [1987]
+        year_range = range(1987,1990)
         groups = ['BLACK']
     else:
         year_range = range(1987, 2011)
@@ -205,7 +213,7 @@ def main(argv):
         idx['MATCH_IDX'] = args.match_idx
         idx['MATCH_VAL'] = args.match_val
 
-    idxes = [[], [], [], []]
+    idxes = [[], [], [], [], []]
     for group in groups:
         for year in year_range:
             print "Loading NCES Data from:  %d" % year
@@ -213,7 +221,8 @@ def main(argv):
             schools = nces.parse(make_dict=True)
             print "Finished Loading NCES Data from:  %d" % year
             if args.debug:
-                print schools
+                # print schools
+                pass
             # Get our data query ready
             idx['Y_GROUP'] = group
             segcalc = SegCalc(schools, idx)
@@ -223,17 +232,21 @@ def main(argv):
                 category_lut = dict(zip(fips_to_st.keys(), [fips_to_st[key][0] for key in fips_to_st.keys()]))
 
             print "Performing Calculations on Data from:  %d" % year
-            exp,iso,dis,tot = calc_idxes(segcalc)
-            category_by_size = sorted(tot, key=tot.get, reverse=True)
-            # Filter out keys absent from our report tables.
-            category_by_size = [i for i in category_by_size if i in category_lut.keys()]
+            exp,iso,dis,min,tot = calc_idxes(segcalc)
             print "Finished Performing Calculations on Data from:  %d" % year
 
+            print "Appending Yearly Data"
             idxes[0].append(exp)
             idxes[1].append(iso)
             idxes[2].append(dis)
-            idxes[3].append(tot)
+            idxes[3].append(min)
+            idxes[4].append(tot)
 
+        print "Sorting By Size of the last year"
+        category_by_size = sorted(tot, key=tot.get, reverse=True)
+        # Filter out keys absent from our report tables.
+        category_by_size = [i for i in category_by_size if i in category_lut.keys()]
+        print "Generating Report"
         save_report(year_range, idxes, category_by_size, category_lut, group.lower() + '_' + args.outfile)
 
 # -------------------------------------
