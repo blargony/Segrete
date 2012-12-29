@@ -7,6 +7,7 @@ import argparse
 import re
 import os
 import csv
+import pickle
 
 # Unit testing
 import unittest
@@ -32,6 +33,7 @@ re_idx_definition = re.compile(r'^[+]?(\w+)\s+(\d+)[*]?\s+(\w+)\s+(.*)$')
 
 datafile_name = "nces%02d-%02d.txt"
 saved_datafile_name = "nces%02d-%02d.csv"
+pickle_datafile_name = "nces%02d-%02d.pk"
 formatfile_name = "nces%02d-%02d_layout.txt"
 
 # ==============================================================================
@@ -130,6 +132,10 @@ class NCESParser(object):
     # --------------------------------------
     def get_saved_datafile_name(self):
         return self.get_filename(saved_datafile_name)
+
+    # --------------------------------------
+    def get_pickle_datafile_name(self):
+        return self.get_filename(pickle_datafile_name)
 
     # --------------------------------------
     def get_filename(self, name_str):
@@ -314,11 +320,22 @@ class NCESParser(object):
         if forced_orig or datafile:
             return self.parse_orig(datafile, make_dict)
         else:
+            pickle_fname = self.get_pickle_datafile_name()
+            try:
+                fh = open(pickle_fname, 'rb')
+                print "Loading Pickled Data Set"
+                self.schools = pickle.load(fh)
+                return self.schools
+            except IOError:
+                pass
+
             saved_fname = self.get_saved_datafile_name()
             try:
                 open(saved_fname, 'rb')
+                print "Loading Previously Saved CSV Data Set"
                 return self.parse_saved(make_dict)
             except IOError:
+                print "Parsing the NCES Data Set"
                 return self.parse_orig(datafile, make_dict)
 
     # --------------------------------------
@@ -328,14 +345,11 @@ class NCESParser(object):
         return dict(zip(self.headers, school))
 
     # --------------------------------------
-    def save_parsed_data(self, filename=""):
+    def save_parsed_data(self):
         """
         Save out the parsed data
         """
-        if filename:
-            fname = filename
-        else:
-            fname = self.get_saved_datafile_name()
+        fname = self.get_saved_datafile_name()
 
         fh = open(fname, 'wb')
         cfh = csv.writer(fh, csv.QUOTE_NONNUMERIC)
@@ -346,6 +360,17 @@ class NCESParser(object):
             if self.debug:
                 print school
             cfh.writerow(school)
+
+    # --------------------------------------
+    def pickle_data(self):
+        """
+        Save out the parsed data
+        """
+        fname = self.get_pickle_datafile_name()
+        fh = open(fname, 'wb')
+        print "Pickling %d Entries to .pk File %s" % (len(self.schools), fname)
+        pickle.dump(self.schools, fh, pickle.HIGHEST_PROTOCOL)
+        fh.close()
 
 # *****************************************************************************
 # Unit Tests
@@ -373,7 +398,9 @@ def main():
     parser.add_argument('--datafile', action='store', dest='datafile', required=False,
             help='NCES Data File')
     parser.add_argument('-update_csv', action='store_true', dest='update_csv', required=False,
-            help='NCES Data File')
+            help='Save a reduced CSV of the NCES Data File')
+    parser.add_argument('-update_pk', action='store_true', dest='update_pk', required=False,
+            help='Cache the parsed dataset to disk')
     parser.add_argument('-debug', action='store_true',
             help='Print Debug Messages')
     args = parser.parse_args()
@@ -390,6 +417,14 @@ def main():
             parse = NCESParser(year=year, debug=args.debug)
             parse.parse(forced_orig=True)
             parse.save_parsed_data()
+    elif args.update_pk:
+        for year in range(1987, 2011):
+            print "=" * 80
+            print "Saving out a reduced dataset for %d" % year
+            print "=" * 80
+            parse = NCESParser(year=year, debug=args.debug)
+            parse.parse(forced_orig=True)
+            parse.pickle_data()
     else:
         if args.year:
             parse = NCESParser(year=args.year, debug=args.debug)
