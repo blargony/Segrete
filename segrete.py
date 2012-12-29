@@ -193,6 +193,7 @@ def main(argv):
         groups = ['BLACK']
     else:
         year_range = range(1987, 2011)
+        # year_range = range(1987,1990)
         groups = ['BLACK', 'HISP', 'ASIAN', 'AM']
 
     # Override the default years/groups per command line requests
@@ -205,7 +206,7 @@ def main(argv):
 
     # Default search query
     idx = {
-        'Y_GROUP': "BLACK",
+        'Y_GROUP': 'BLACK',
         'Z_GROUP': 'WHITE',
         'TOTAL': 'MEMBER',
         'CATEGORY': category,
@@ -215,8 +216,8 @@ def main(argv):
         idx['MATCH_IDX'] = args.match_idx
         idx['MATCH_VAL'] = args.match_val
 
-    idxes = [[], [], [], [], []]
     for group in groups:
+        idxes = [[], [], [], [], []]
         for year in year_range:
             print "Loading NCES Data from:  %d" % year
             nces = NCESParser(year=year)
