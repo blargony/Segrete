@@ -112,7 +112,7 @@ def calc_idxes_range(year_range, idx):
     return (exp_idx, iso_idx, dis_idx)
 
 # -------------------------------------
-def save_report(year_range, idxes, category_list, category_txt, filename):
+def save_report(year_range, idxes, count, category_list, category_txt, filename):
     """
     Write out a bunch of report data to a spreadsheet report.
     Report will be a 2D matrix:
@@ -136,7 +136,7 @@ def save_report(year_range, idxes, category_list, category_txt, filename):
     for ws in worksheets:
         ws.write(0, 0, "LEA/Year")
         for j, st in enumerate(category_list):
-            if j < MAX_RECORD:
+            if j < count:
                 if len(category_txt[st]) == 2: # Don't change caps for State abbr.
                     ws.write(j+1, 0, category_txt[st])
                 else:
@@ -148,7 +148,7 @@ def save_report(year_range, idxes, category_list, category_txt, filename):
         for ws in worksheets:
             ws.write(0, i+1, year)
         for j, st in enumerate(category_list):
-            if j < MAX_RECORD:
+            if j < count:
                 for k, idx in enumerate(idxes):
                     try:
                         if idx[i][st] < 0.001:
@@ -201,8 +201,11 @@ def main(argv):
         groups = [args.group]
     if args.year:
         year_range = [args.year]
-    if args.max_record:
-        MAX_RECORD = args.max_record
+    if int(args.max_record):
+        report_count = int(args.max_record)
+        print report_count
+    else:
+        report_count = MAX_RECORD
 
     # Default search query
     idx = {
@@ -250,7 +253,14 @@ def main(argv):
         # Filter out keys absent from our report tables.
         category_by_size = [i for i in category_by_size if i in category_lut.keys()]
         print "Generating Report"
-        save_report(year_range, idxes, category_by_size, category_lut, group.lower() + '_' + args.outfile)
+        save_report(
+                year_range,
+                idxes,
+                report_count,
+                category_by_size,
+                category_lut,
+                group.lower() + '_' + args.outfile
+            )
 
 # -------------------------------------
 # Drop the script name from the args
