@@ -153,6 +153,8 @@ class NCESParser(object):
             "WHITE",
             "MEMBER",
             "FRELCH",
+            "TYPE",
+            "STATUS",
             "GSHI",
             "GSLO"
         ]
@@ -343,12 +345,18 @@ class NCESParser(object):
         for line in fh:
             if make_dict:
                 school = self.make_dict(self.parse_line(line))
+                if school['LEANM'].startswith("NEW YORK CITY GEOGRAPHIC DISTRICT"):
+                    school['LEAID'] = "3620580"
+                    school['LEANM'] = "NEW YORK CITY GEOGRAPHIC DISTRICTS"
                 if int(school['FIPS']) in fips_to_st.keys():
                     self.schools.append(school)
                 else:
                     skip_count += 1
             else:
                 school = self.parse_line(line)
+                if school[self.get_idx('LEANM')].startswith("NEW YORK CITY GEOGRAPHIC DISTRICT"):
+                    school[self.get_idx('LEAID')] = "3620580"
+                    school[self.get_idx('LEANM')] = "NEW YORK CITY GEOGRAPHIC DISTRICTS"
                 if int(school[self.get_idx('FIPS')]) in fips_to_st.keys():
                     self.schools.append(school)
                 else:
