@@ -112,7 +112,7 @@ def calc_idxes_range(year_range, idx):
     return (exp_idx, iso_idx, dis_idx)
 
 # -------------------------------------
-def save_report(year_range, idxes, count, category_list, category_txt, filename):
+def save_report(year_range, idxes, count, category_list, category_txt, category_txt2, filename):
     """
     Write out a bunch of report data to a spreadsheet report.
     Report will be a 2D matrix:
@@ -134,29 +134,38 @@ def save_report(year_range, idxes, count, category_list, category_txt, filename)
 
     # Create the headers/labels row/col
     for ws in worksheets:
-        ws.write(0, 0, "LEA/Year")
+        ws.write(0, 0, "Agency Name")
         for j, st in enumerate(category_list):
             if j < count:
                 if len(category_txt[st]) == 2: # Don't change caps for State abbr.
                     ws.write(j+1, 0, category_txt[st])
                 else:
                     ws.write(j+1, 0, category_txt[st].title())
+        offset = 1
+
+    if category_txt2:
+        for ws in worksheets:
+            ws.write(0, 1, "State")
+            for j, st in enumerate(category_list):
+                if j < count:
+                    ws.write(j+1, 1, fips_to_st[category_txt2[st]][0])
+        offset = 2
 
     # Print out the data
     for i, year in enumerate(year_range):
         print "Write Report for:  %d" % year
         for ws in worksheets:
-            ws.write(0, i+1, year)
+            ws.write(0, i+offset, year)
         for j, st in enumerate(category_list):
             if j < count:
                 for k, idx in enumerate(idxes):
                     try:
                         if idx[i][st] < 0.001:
-                            worksheets[k].write(j+1, i+1, "")
+                            worksheets[k].write(j+1, i+offset, "")
                         else:
-                            worksheets[k].write(j+1, i+1, idx[i][st])
+                            worksheets[k].write(j+1, i+offset, idx[i][st])
                     except KeyError:
-                        worksheets[k].write(j+1, i+1, "")
+                        worksheets[k].write(j+1, i+offset, "")
     wb.save(filename)
 
 # -------------------------------------
@@ -234,8 +243,10 @@ def main(argv):
             segcalc = SegCalc(schools, idx)
             if category == 'LEAID':
                 category_lut = segcalc.get_idxed_val('LEAID', 'LEANM')
+                category_lut2 = segcalc.get_idxed_val('LEAID', 'FIPS')
             elif category == 'FIPS':
                 category_lut = dict(zip(fips_to_st.keys(), [fips_to_st[key][0] for key in fips_to_st.keys()]))
+                category_lut2 = None
 
             print "Performing Calculations on Data from:  %d" % year
             exp,iso,dis,min,tot = calc_idxes(segcalc)
@@ -251,7 +262,7 @@ def main(argv):
         print "Sorting By Size of the last year"
         category_by_size = sorted(tot, key=tot.get, reverse=True)
         # Filter out keys absent from our report tables.
-        category_by_size = [i for i in category_by_size if i in category_lut.keys()]
+        # category_by_size = [i for i in category_by_size if i in category_lut.keys()]
         print "Generating Report"
         save_report(
                 year_range,
@@ -259,6 +270,7 @@ def main(argv):
                 report_count,
                 category_by_size,
                 category_lut,
+                category_lut2,
                 group.lower() + '_' + args.outfile
             )
 
