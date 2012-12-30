@@ -298,10 +298,8 @@ class NCESParser(object):
         except AttributeError:
             self.name_idx_dict = {}
             for i, name in enumerate(self.headers):
-                self.name_idx_dict[col_name] = i
+                self.name_idx_dict[name] = i
             return self.name_idx_dict[col_name]
-        except KeyError:
-            raise Exception("Invalid Column Name:  %s" % col_name)
 
     # --------------------------------------
     def get_descriptions(self):
@@ -340,19 +338,25 @@ class NCESParser(object):
             fh = csv.reader(fh, dialect='excel-tab')
             line = fh.next() # Pop the header line
 
+        skip_count = 0
         self.schools = []
         for line in fh:
             if make_dict:
                 school = self.make_dict(self.parse_line(line))
                 if int(school['FIPS']) in fips_to_st.keys():
                     self.schools.append(school)
+                else:
+                    skip_count += 1
             else:
                 school = self.parse_line(line)
                 if int(school[self.get_idx('FIPS')]) in fips_to_st.keys():
                     self.schools.append(school)
+                else:
+                    skip_count += 1
 
         if self.debug:
-            print len(self.schools)
+            print "Found %d Schools" % len(self.schools)
+            print "Skipped %d Schools" % skip_count
         return self.schools
 
 
