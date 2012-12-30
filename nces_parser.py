@@ -36,6 +36,60 @@ saved_datafile_name = "nces%02d-%02d.csv"
 pickle_datafile_name = "nces%02d-%02d.pk"
 formatfile_name = "nces%02d-%02d_layout.txt"
 
+fips_to_st = {
+    1: ('AL', 'Alabama'),
+    2: ('AK', 'Alaska'),
+    4: ('AZ', 'Arizona'),
+    5: ('AR', 'Arkansas'),
+    6: ('CA', 'California'),
+    8: ('CO', 'Colorado'),
+    9: ('CT', 'Connecticut'),
+    10: ('DE', 'Delaware'),
+    11: ('DC', 'District of Columbia'),
+    12: ('FL', 'Florida'),
+    13: ('GA', 'Georgia'),
+    15: ('HI', 'Hawaii'),
+    16: ('ID', 'Idaho'),
+    17: ('IL', 'Illinois'),
+    18: ('IN', 'Indiana'),
+    19: ('IA', 'Iowa'),
+    20: ('KS', 'Kansas'),
+    21: ('KY', 'Kentucky'),
+    22: ('LA', 'Louisiana'),
+    23: ('ME', 'Maine'),
+    24: ('MD', 'Maryland'),
+    25: ('MA', 'Massachusetts'),
+    26: ('MI', 'Michigan'),
+    27: ('MN', 'Minnesota'),
+    28: ('MS', 'Mississippi'),
+    29: ('MO', 'Missouri'),
+    30: ('MT', 'Montana'),
+    31: ('NE', 'Nebraska'),
+    32: ('NV', 'Nevada'),
+    33: ('NH', 'New Hampshire'),
+    34: ('NJ', 'New Jersey'),
+    35: ('NM', 'New Mexico'),
+    36: ('NY', 'New York'),
+    37: ('NC', 'North Carolina'),
+    38: ('ND', 'North Dakota'),
+    39: ('OH', 'Ohio'),
+    40: ('OK', 'Oklahoma'),
+    41: ('OR', 'Oregon'),
+    42: ('PA', 'Pennsylvania'),
+    44: ('RI', 'Rhode Island'),
+    45: ('SC', 'South Carolina'),
+    46: ('SD', 'South Dakota'),
+    47: ('TN', 'Tennessee'),
+    48: ('TX', 'Texas'),
+    49: ('UT', 'Utah'),
+    50: ('VT', 'Vermont'),
+    51: ('VA', 'Virginia'),
+    53: ('WA', 'Washington'),
+    54: ('WV', 'West Virginia'),
+    55: ('WI', 'Wisconsin'),
+    56: ('WY', 'Wyoming')
+}
+
 # ==============================================================================
 # Utility Functions
 # ==============================================================================
@@ -239,10 +293,15 @@ class NCESParser(object):
 
     # --------------------------------------
     def get_idx(self, col_name):
-        for i, name in enumerate(self.headers):
-            if name == col_name:
-                return i
-        raise Exception("Invalid Column Name:  %s" % col_name)
+        try:
+            return self.name_idx_dict[col_name]
+        except AttributeError:
+            self.name_idx_dict = {}
+            for i, name in enumerate(self.headers):
+                self.name_idx_dict[col_name] = i
+            return self.name_idx_dict[col_name]
+        except KeyError:
+            raise Exception("Invalid Column Name:  %s" % col_name)
 
     # --------------------------------------
     def get_descriptions(self):
@@ -284,9 +343,13 @@ class NCESParser(object):
         self.schools = []
         for line in fh:
             if make_dict:
-                self.schools.append(self.make_dict(self.parse_line(line)))
+                school = self.make_dict(self.parse_line(line))
+                if int(school['FIPS']) in fips_to_st.keys():
+                    self.schools.append(school)
             else:
-                self.schools.append(self.parse_line(line))
+                school = self.parse_line(line)
+                if int(school[self.get_idx('FIPS')]) in fips_to_st.keys():
+                    self.schools.append(school)
 
         if self.debug:
             print len(self.schools)
@@ -300,10 +363,10 @@ class NCESParser(object):
         fh = open(saved_fname, 'rb')
 
         if make_dict:
-            cfh = csv.DictReader(fh)
+            cfh = csv.DictReader(fh, quoting=csv.QUOTE_NONNUMERIC)
             self.headers = cfh.fieldnames
         else:
-            cfh = csv.reader(fh)
+            cfh = csv.reader(fh, quoting=csv.QUOTE_NONNUMERIC)
             self.headers = cfh.next()
 
         self.schools = []
@@ -352,7 +415,7 @@ class NCESParser(object):
         fname = self.get_saved_datafile_name()
 
         fh = open(fname, 'wb')
-        cfh = csv.writer(fh, csv.QUOTE_NONNUMERIC)
+        cfh = csv.writer(fh, quoting=csv.QUOTE_NONNUMERIC)
         cfh.writerow(self.get_headers())
 
         print "Saving %d Entries to CSV File %s" % (len(self.schools), fname)
