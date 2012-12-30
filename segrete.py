@@ -201,7 +201,7 @@ def main(argv):
         groups = [args.group]
     if args.year:
         year_range = [args.year]
-    if int(args.max_record):
+    if args.max_record:
         report_count = int(args.max_record)
         print report_count
     else:
