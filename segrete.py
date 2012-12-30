@@ -263,12 +263,22 @@ def main(argv):
         category_by_size = sorted(tot, key=tot.get, reverse=True)
         # Filter out keys absent from our report tables.
         # category_by_size = [i for i in category_by_size if i in category_lut.keys()]
+
+        print "Filtering out Districts with very low minority percentages"
+        category_list = []
+        for category in category_by_size:
+            if tot[category] > 1000 and float(min[category])/tot[category] > 0.1:
+                category_list.append(category)
+            else:
+                if args.debug:
+                    print "Skipping District:  %s, Headcount: %d" % (category_lut[category], tot[category])
+
         print "Generating Report"
         save_report(
                 year_range,
                 idxes,
                 report_count,
-                category_by_size,
+                category_list,
                 category_lut,
                 category_lut2,
                 group.lower() + '_' + args.outfile
