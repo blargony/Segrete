@@ -203,7 +203,7 @@ def main(argv):
     else:
         year_range = range(1987, 2011)
         # year_range = range(1987,1990)
-        groups = ['BLACK', 'HISP', 'ASIAN', 'AM']
+        groups = ['BLACK', 'HISP']
 
     # Override the default years/groups per command line requests
     if args.group:
