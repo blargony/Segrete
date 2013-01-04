@@ -319,9 +319,9 @@ class NCESParser(object):
                 print field
             if instr[1] == 'N':   # Number Type
                 try:
-                    field = int(field)
+                    field = float(field)
                 except ValueError:
-                    field = 0    # Squash invalid values to 0 for fields of type 'Number'
+                    field = -1.0    # Squash invalid values to -1 for fields of type 'Number'
             else:
                 field = field.strip()    # Otherwise clean up the string
             entry.append(field)
