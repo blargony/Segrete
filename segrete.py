@@ -212,7 +212,6 @@ def main(argv):
         year_range = [args.year]
     if args.max_record:
         report_count = int(args.max_record)
-        print report_count
     else:
         report_count = MAX_RECORD
 
