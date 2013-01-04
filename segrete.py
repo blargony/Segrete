@@ -5,6 +5,7 @@ some reports on segregation in the USA.
 """
 import sys
 import argparse
+import operator
 
 from segcalc import SegCalc
 from nces_parser import NCESParser
@@ -259,14 +260,12 @@ def main(argv):
             idxes[4].append(tot)
 
         print "Sorting By Size of the last year"
-        category_by_size = sorted(tot, key=tot.get, reverse=True)
-        # Filter out keys absent from our report tables.
-        # category_by_size = [i for i in category_by_size if i in category_lut.keys()]
+        category_by_size = sorted(tot.iteritems(), key=operator.itemgetter(1), reverse=True)
 
         print "Filtering out Districts with very low minority percentages"
         category_list = []
-        for category in category_by_size:
-            if tot[category] > 1000 and float(min[category])/tot[category] > 0.1:
+        for category, total in category_by_size:
+            if total > 1000 and float(min[category])/total > 0.1:
                 category_list.append(category)
             else:
                 if args.debug:
