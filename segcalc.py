@@ -145,6 +145,9 @@ class SegCalc(object):
                 yi = school[yidx]
                 zi = school[zidx]
                 ti = school[self.total_idx]
+                # Special case for Free/Reduced Lunch
+                if yidx == 'FRELCH' and zidx != 'FRELCH':
+                    zi = ti - yi
             except KeyError:
                 raise Exception("Problem School:",school.__repr__())
 
@@ -237,6 +240,8 @@ class SegCalc(object):
             giy = school[self.y_group_idx]
             giz = school[self.z_group_idx]
             ti = school[self.total_idx]
+            if self.y_group_idx == 'FRELCH':
+                giz = ti - giy
 
             # Make sure to create an entry for
             # every school, even if the data is bogus
