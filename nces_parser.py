@@ -244,7 +244,7 @@ class NCESParser(object):
                 type = 'N'
             if col_name == "FIPS":
                 type = 'N'
-            if col_name == "FRE%02d" % (self.year%100):
+            if col_name == "FLE%02d" % (self.year%100):
                 col_name = "FRELCH"
             if col_name == ("IND%02d" % (self.year%100)):
                 col_name = "AM"
