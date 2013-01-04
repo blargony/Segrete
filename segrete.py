@@ -264,11 +264,11 @@ def main(argv):
         print "Filtering out Districts with very low minority percentages"
         category_list = []
         for category, total in category_by_size:
-            if total > 1000 and float(min[category])/total > 0.1:
+            if total > 1000 and min[category]/total > 0.1:
                 category_list.append(category)
             else:
                 if args.debug:
-                    print "Skipping District:  %s, Headcount: %d" % (category_lut[category], tot[category])
+                    print "Skipping District:  %s, Total Students: %d, Group Studends: %d" % (category_lut[category], tot[category], min[category])
 
         print "Generating Report"
         save_report(
