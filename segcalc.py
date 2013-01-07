@@ -7,6 +7,8 @@ that we can index for one of several parameters to get the required
 data.
 """
 import sys
+import operator
+
 from nces_parser import NCESParser
 
 # ==============================================================================
@@ -210,58 +212,51 @@ class SegCalc(object):
 
 
     # ======================================
-    def calc_dis_idx(self):
+    def calc_cat_totals(self):
         """
-        Calculate the Dissimilarity Index - Current Segregation divided by
-        the maximum possible segregation given the actual population demographics
+        For several calculations we need to sum up the total populations
+        before hand.  This function sums up:
 
-        This consists of two terms, first the calculated segregation.  In this case
-        we will calculate how many students must change schools for school demographics
-        to match the population at large:
+            Total Number of Students
+            Percentage of the Total Student Count that is the Y Group
+            Percentage of the Total Student Count that is the Z Group
 
-            Sum(i)Sum(y) |(giy - Py*ti)|  (Note Absolute Value, we need the delta from the ideal)
-
-        Py is percentage of students in Y_GROUP in the Category population (state/district/etc)
-        ti is the total students in the school
-        Py*ti is the number of students in school i that should be in the Y_GROUP
-        giy is the Y_GROUP students actually in a given school
-
-
+        Returns a tuple, (T, Py, Pz)
         """
         # Calculate:
         #   Total Student Count
         #   Percentage of Total in Group Y
         #   Percentage of Total in Group Z
         # Remember to keep things grouped by region (category)
+        T = {}
         Py = {}
         Pz = {}
-        T = {}
         for school in self.filtered_data:
+            ti = school[self.total_idx]
             giy = school[self.y_group_idx]
             giz = school[self.z_group_idx]
-            ti = school[self.total_idx]
             if self.y_group_idx == 'FRELCH':
                 giz = ti - giy
 
             # Make sure to create an entry for
             # every school, even if the data is bogus
             try:
+                test = T[school[self.cat_idx]]
                 test = Py[school[self.cat_idx]]
                 test = Pz[school[self.cat_idx]]
-                test = T[school[self.cat_idx]]
             except KeyError:
-                Py[school[self.cat_idx]] = 0
-                Pz[school[self.cat_idx]] = 0
-                T[school[self.cat_idx]] = 0
+                T[school[self.cat_idx]] = 0.0
+                Py[school[self.cat_idx]] = 0.0
+                Pz[school[self.cat_idx]] = 0.0
 
             # Negative numbers are used to represent missing data, don't
             # include these in the calculations
             if giy < 0 or giz < 0 or ti < 0:
                 continue
 
+            T[school[self.cat_idx]] += ti
             Py[school[self.cat_idx]] += giy
             Pz[school[self.cat_idx]] += giz
-            T[school[self.cat_idx]] += ti
 
         for cat in T.keys():
             try:
@@ -281,6 +276,39 @@ class SegCalc(object):
             print Py
             print Pz
             print T
+
+        return (T, Py, Pz)
+
+    # ======================================
+    def calc_dis_idx(self):
+        """
+        Calculate the Dissimilarity Index - Current Segregation divided by
+        the maximum possible segregation given the actual population demographics
+
+        This consists of two terms, first the calculated segregation.  In this case
+        we will calculate how many students must change schools for school demographics
+        to match the population at large:
+
+            Sum(i)Sum(y) |(giy - Py*ti)|  (Note Absolute Value, we need the delta from the ideal)
+
+        Py is percentage of students in Y_GROUP in the Category population (state/district/etc)
+        ti is the total students in the school
+        Py*ti is the number of students in school i that should be in the Y_GROUP
+        giy is the Y_GROUP students actually in a given school
+
+        Second the Total Segragation given the population:
+
+            T(Py)(1-Py) + T(Pz)(1-Pz)
+
+        TODO:  Why Py*(1-Py)?
+
+        """
+        # Get:
+        #   Total Student Count
+        #   Percentage of Total in Group Y
+        #   Percentage of Total in Group Z
+        # Remember to keep things grouped by region (category)
+        T, Py, Pz = self.calc_cat_totals()
 
         # Now we have Py/Pz, we can calculate the numerator
         Num = {}
@@ -317,6 +345,7 @@ class SegCalc(object):
             Den[cat] = 0.0
             Den[cat] += T[cat] * Py[cat] * (1 - Py[cat])
             Den[cat] += T[cat] * Pz[cat] * (1 - Pz[cat])
+            Den[cat] *= 2.0
 
         if self.debug:
             print "=" * 80
@@ -327,11 +356,192 @@ class SegCalc(object):
         Sum = {}
         for cat in Num.keys():
             try:
-                Sum[cat] = 0.5*Num[cat]/Den[cat]
+                Sum[cat] = Num[cat]/Den[cat]
             except ZeroDivisionError:
                 Sum[cat] = 0.0
 
         return Sum
+
+    # ======================================
+    def calc_gini_coef(self):
+        """
+        Calculate the Gini Coefficient - A measure of inequality or in this case
+        segregation (equality of distribution of minority students as compared to
+        total minority population in the selected category)
+
+        Calculate the sum of difference between proportions of a minority group
+        against all other schools in the category:
+
+            Sum(i)Sum(j) (ti*tj*|pi - pj|)
+
+        Normalization term, the area of an ideally distributed district:
+
+            2*T*T(Py)(1-Py)
+
+        """
+        # Sort schools out into lists group by the category index
+        schools_by_cat = {}
+        for school in self.filtered_data:
+            # Make sure the datastructure exists
+            try:
+                test = schools_by_cat[school[self.cat_idx]]
+            except KeyError:
+                schools_by_cat[school[self.cat_idx]] = []
+            schools_by_cat[school[self.cat_idx]].append(school)
+
+        if self.debug:
+            print schools_by_cat.keys()
+
+        Num = {}
+        # Now the double sum for the numerator
+        for cat in schools_by_cat.keys():
+            if self.debug:
+                print "Schools in Category %s:  %d" % (cat, len(schools_by_cat[cat]))
+            for ischool in schools_by_cat[cat]:
+                for jschool in schools_by_cat[cat]:
+                    ti = ischool[self.total_idx]
+                    gyi = ischool[self.y_group_idx]
+                    tj = jschool[self.total_idx]
+                    gyj = jschool[self.y_group_idx]
+
+                    # Make sure the datastructure exists
+                    try:
+                        test = Num[cat]
+                    except KeyError:
+                        Num[cat] = 0.0
+
+                    # Negative numbers are used to represent missing data, don't
+                    # include these in the calculations
+                    if gyi < 0 or gyj < 0 or ti <= 0 or tj <= 0:
+                        continue
+
+                    # Sum the Term Here:  ti*tj*abs(...)
+                    Num[cat] += ti*tj*abs(gyi/ti-gyj/tj)
+
+        if self.debug:
+            print "=" * 80
+            print "Numerator"
+            print "=" * 80
+            print Num
+
+        # Get:
+        #   Total Student Count
+        #   Percentage of Total in Group Y
+        #   Percentage of Total in Group Z
+        # To calculate the denominator
+        T, Py, Pz = self.calc_cat_totals()
+
+        Den = {}
+        for cat in Num.keys():
+            Den[cat] = 0.0
+            Den[cat] += 2 * T[cat] * T[cat] * Py[cat] * (1 - Py[cat])
+
+        if self.debug:
+            print "=" * 80
+            print "Denomenator"
+            print "=" * 80
+            print Den
+
+        Gini = {}
+        for cat in Num.keys():
+            try:
+                Gini[cat] = Num[cat]/Den[cat]
+            except ZeroDivisionError:
+                Gini[cat] = 0.0
+
+        return Gini
+
+
+    # ======================================
+    def calc_gini_coef2(self):
+        """
+        Calculate the Gini Coefficient - A measure of inequality or in this case
+        segregation (equality of distribution of minority students as compared to
+        total minority population in the selected category)
+
+        Calculate the sum of difference between proportions of a minority group
+        against all other schools in the category:
+
+            Sum(i)Sum(j) (ti*tj*|pi - pj|)
+
+        Normalization term, the area of an ideally distributed district:
+
+            2*T*T(Py)(1-Py)
+
+        """
+        # Categorized Totals/Probabilities
+        T, Py, Pz = self.calc_cat_totals()
+
+        schools_and_y_group = []
+        for school in self.filtered_data:
+            giy = school[self.y_group_idx]
+            ti = school[self.total_idx]
+            try:
+                schools_and_y_group.append((giy/ti, giy, ti, school))
+            except ZeroDivisionError:
+                pass
+
+        schools_by_pi = sorted(schools_and_y_group, key=operator.itemgetter(0))
+
+        B_y_axis = {}
+        B = {}
+        Count = {}
+
+        for pi, giy, ti, school in schools_by_pi:
+
+            category = school[self.cat_idx]
+
+            # Make sure the datastructure exists
+            try:
+                test = B[category]
+            except KeyError:
+                B_y_axis[category] = 0.0
+                B[category] = 0.0
+                Count[category] = 1
+
+            # Negative numbers are used to represent missing data, don't
+            # include these in the calculations
+
+            if giy < 0 or ti <= 0:
+                continue
+
+            # Areas
+            if category == '02':
+                print "%f vs %f" % (pi, Py['02'])
+            B_y_axis[category] += pi
+            B[category] += B_y_axis[category]
+            Count[category] += 1
+
+        if self.debug:
+            import pprint
+            print "=" * 80
+            print "B"
+            print "=" * 80
+            pprint.pprint(B)
+
+            import pprint
+            print "=" * 80
+            print "B_y_axis"
+            print "=" * 80
+            pprint.pprint(B_y_axis)
+
+            import pprint
+            print "=" * 80
+            print "Count"
+            print "=" * 80
+            pprint.pprint(Count)
+
+
+        Gini = {}
+        for cat in B.keys():
+            try:
+                B[cat] = B[cat] / (Count[cat] * B_y_axis[cat])  # Normalize area to 1
+            except ZeroDivisionError:
+                B[cat] = 0.5
+            Gini[cat] = (1 - 2*B[cat])                    # Return Area A
+
+        return Gini
+
 
 
 # *****************************************************************************
@@ -353,7 +563,15 @@ def main(argv):
         {'BLACK': 5, 'WHITE': 20, 'MEMBER': 25, 'FIPS': 02, 'LEAID': 011},
         {'BLACK': 5, 'WHITE': 20, 'MEMBER': 25, 'FIPS': 02, 'LEAID': 011},
     ]
-    idx = {'Y_GROUP': 'BLACK', 'Z_GROUP': 'WHITE', 'TOTAL': 'MEMBER', 'CATEGORY': 'FIPS', 'SUB_CAT': 'LEAID'}
+    idx = {
+            'Y_GROUP': 'BLACK',
+            'Z_GROUP': 'WHITE',
+            'TOTAL': 'MEMBER',
+            'CATEGORY': 'LEAID',
+            'SUB_CAT': 'LEAID',
+            'MATCH_IDX': 'FIPS',
+            'MATCH_VAL': '06'
+            }
 
     # Switch over to real data if interested.
     nces = NCESParser(year=2006)
@@ -365,15 +583,24 @@ def main(argv):
     print "=" * 80
     print "Exposure Index"
     print "=" * 80
-    pprint.pprint(sg.calc_exp_idx())
+    # pprint.pprint(sg.calc_exp_idx())
     print "=" * 80
     print "Isolation Index"
     print "=" * 80
-    pprint.pprint(sg.calc_iso_idx())
+    # pprint.pprint(sg.calc_iso_idx())
     print "=" * 80
     print "Dissimilarity Index"
     print "=" * 80
     pprint.pprint(sg.calc_dis_idx())
+    print "=" * 80
+    print "Gini Coefficient"
+    print "=" * 80
+    pprint.pprint(sg.calc_gini_coef())
+    print "=" * 80
+    print "Gini Coefficient 2"
+    print "=" * 80
+    pprint.pprint(sg.calc_gini_coef2())
+
 
 # -------------------------------------
 # Drop the script name from the args
