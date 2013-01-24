@@ -497,12 +497,13 @@ class SegCalc(object):
             except KeyError:
                 B_y_axis[category] = 0.0
                 B[category] = 0.0
-                Count[category] = 1
+                Count[category] = 0
 
             # Negative numbers are used to represent missing data, don't
             # include these in the calculations
 
             if giy < 0 or ti <= 0:
+                print school
                 continue
 
             # Areas
@@ -536,9 +537,9 @@ class SegCalc(object):
         for cat in B.keys():
             try:
                 B[cat] = B[cat] / (Count[cat] * B_y_axis[cat])  # Normalize area to 1
+                Gini[cat] = (1 + 1/Count[cat] - 2*B[cat])           # Return Area A
             except ZeroDivisionError:
-                B[cat] = 0.5
-            Gini[cat] = (1 - 2*B[cat])                    # Return Area A
+                Gini[cat] = 0.0
 
         return Gini
 
