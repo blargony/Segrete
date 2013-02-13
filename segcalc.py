@@ -113,10 +113,69 @@ class SegCalc(object):
             except KeyError:
                 Total[school[self.cat_idx]] = 0
 
-            Total[school[self.cat_idx]] += ti
+            # Negative numbers mean missing data.
+            if ti >= 0:
+                Total[school[self.cat_idx]] += ti
 
         return Total
 
+    # ======================================
+    def calc_90(self):
+        """
+        Percentage of the Group within the Category that are in
+        a school w/ 90% or more of that give Group.
+        """
+        Y = {}
+        Sum = {}
+        for school in self.filtered_data:
+            try:
+                yi = school[self.y_group_idx]
+                ti = school[self.total_idx]
+            except KeyError:
+                raise Exception("Problem School:",school.__repr__())
+
+            # Make sure the datastructure exists
+            try:
+                test = Sum[school[self.cat_idx]]
+            except KeyError:
+                Sum[school[self.cat_idx]] = 0.0
+
+            # Now sum up all the members of Group Y to divided
+            # out of the final sum
+            try:
+                test = Y[school[self.cat_idx]]
+            except KeyError:
+                Y[school[self.cat_idx]] = 0.0
+
+            # Negative numbers are used to represent missing data, don't
+            # include these in the calculations
+            if yi < 0 or ti <= 0:
+                continue
+
+            # Compute the term to be summed up
+            # Test for divide by zero and ignore the data point if it happens
+            try:
+                per = float(yi)/ti
+            except ZeroDivisionError:
+                continue
+
+            # Add to the Group Tally if 90% limit is exceeded
+            if per > 0.9:
+                Y[school[self.cat_idx]] += yi
+            # Always add to the Category total
+            Sum[school[self.cat_idx]] += ti
+
+        # Convert to a percentage
+        for cat in Y.keys():
+            try:
+                Y[cat] = Y[cat] / Sum[cat]
+            except ZeroDivisionError:
+                Y[cat] = 0.0
+
+        return Y
+
+
+ 
     # ======================================
     # Segragation Calculations
     # ======================================
