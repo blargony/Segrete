@@ -156,7 +156,9 @@ class NCESParser(object):
             "TYPE",
             "STATUS",
             "GSHI",
-            "GSLO"
+            "GSLO",
+            "CHARTR",
+            "MAGNET"
         ]
 
         if year:
