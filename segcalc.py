@@ -120,6 +120,55 @@ class SegCalc(object):
         return Total
 
     # ======================================
+    def calc_percentages(self):
+        """
+        Get a report on the total student count and so forth
+        """
+        Percentages = {}
+        for school in self.filtered_data:
+            try:
+                perc = dict(
+                    WHITE=school['WHITE'],
+                    BLACK=school['BLACK'],
+                    HISP=school['HISP'],
+                    ASIAN=school['ASIAN'],
+                    AM=school['AM'],
+                    MEMBER=school['MEMBER']
+                )
+            except KeyError:
+                raise Exception("Problem School:",school.__repr__())
+
+            # Make sure the datastructure exists
+            try:
+                test = Percentages[school[self.cat_idx]]
+            except KeyError:
+                Percentages[school[self.cat_idx]] = dict(WHITE=0, BLACK=0, HISP=0, ASIAN=0, AM=0, MEMBER=0)
+
+            # Negative numbers mean missing data.
+            for ethn in perc.keys():
+                if perc[ethn] >= 0:
+                    Percentages[school[self.cat_idx]][ethn] += perc[ethn]
+
+        for cat_idx in Percentages.keys():
+            try:
+                ti = Percentages[cat_idx]['MEMBER']
+                Percentages[cat_idx]['WHITE'] = float(Percentages[cat_idx]['WHITE'])/ti
+                Percentages[cat_idx]['BLACK'] = float(Percentages[cat_idx]['BLACK'])/ti
+                Percentages[cat_idx]['HISP'] = float(Percentages[cat_idx]['HISP'])/ti
+                Percentages[cat_idx]['ASIAN'] = float(Percentages[cat_idx]['ASIAN'])/ti
+                Percentages[cat_idx]['AM'] = float(Percentages[cat_idx]['AM'])/ti
+            except ZeroDivisionError:
+                Percentages[cat_idx]['WHITE'] = 0.0
+                Percentages[cat_idx]['BLACK'] = 0.0
+                Percentages[cat_idx]['HISP'] = 0.0
+                Percentages[cat_idx]['ASIAN'] = 0.0
+                Percentages[cat_idx]['AM'] = 0.0
+
+        # import pprint
+        # pprint.pprint(Percentages)
+        return Percentages
+
+    # ======================================
     def calc_90(self):
         """
         Percentage of the Group within the Category that are in
