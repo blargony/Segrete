@@ -197,7 +197,7 @@ def sch_type_report(schools, cat_idx):
             except ValueError:
                 magnet = 0
         except KeyError:
-            raise Exception("Problem School:",school.__repr__())
+            raise KeyError("Problem School:",school.__repr__())
 
         # Make sure the datastructure exists
         try:
@@ -218,7 +218,6 @@ def sch_type_report(schools, cat_idx):
                 counts_dict[school[cat_idx]]['other'] += 1
                 counts_dict[school[cat_idx]]['other_st'] += ti
 
-    
     counts = []
     for items in counts_dict.iteritems():
         entry = [items[0]]
@@ -234,7 +233,7 @@ def sch_type_report(schools, cat_idx):
     return counts_by_size
 
 # -------------------------------------
-def save_sch_report(results, count, category_lut, filename):
+def save_sch_report(year_range, results, count, category_lut, filename):
     """
     Report will be a 2D matrix:
         - X-Axis = School Type and Students Served Counts
@@ -245,32 +244,53 @@ def save_sch_report(results, count, category_lut, filename):
         - worksheets is a list of XLS worksheets, one per report in idxes
     """
     wb = Workbook()
-    sch_types = wb.add_sheet('School Types')
+    sch_types = wb.add_sheet('School Counts')
+    pop_perc = wb.add_sheet('Student Percentages')
+
+    worksheets = [sch_types, pop_perc]
+
+    y_offset = 2
+    x_offset = 2
 
     # Create the headers/labels row/col
-    sch_types.write(0, 0, "Agency Name")
-    sch_types.write(0, 1, "State")
-    sch_types.write(0, 2, "Total Students")
-    sch_types.write(0, 3, "Regular School Count")
-    sch_types.write(0, 4, "Regular School Student Population")
-    sch_types.write(0, 5, "Charter School Count")
-    sch_types.write(0, 6, "Charter School Student Population")
-    sch_types.write(0, 7, "Magnet School Count")
-    sch_types.write(0, 8, "Magnet School Student Population")
+    sch_types.write(1, 0, "Agency Name")
+    sch_types.write(1, 1, "State")
 
-    # Print out the data
-    offset = 1
-    for j, result in enumerate(results):
-        if j < count:
-            sch_types.write(offset+j, 0, category_lut[result[0]])
-            sch_types.write(offset+j, 1, fips_to_st[result[0][:2]][0])
-            sch_types.write(offset+j, 2, result[1])
-            sch_types.write(offset+j, 3, result[2])
-            sch_types.write(offset+j, 4, result[3])
-            sch_types.write(offset+j, 5, result[4])
-            sch_types.write(offset+j, 6, result[5])
-            sch_types.write(offset+j, 7, result[6])
-            sch_types.write(offset+j, 8, result[7])
+    # Headers
+    for i, year in enumerate(year_range):
+        print "Write Report for:  %d" % year
+        for ws in worksheets:
+            ws.write_merge(0, 0, (i*3)+x_offset, (i*3)+2+x_offset, year)
+
+        sch_types.write(1, (i*3)+x_offset, "Regular School")
+        sch_types.write(1, (i*3)+1+x_offset, "Charter School")
+        sch_types.write(1, (i*3)+2+x_offset, "Magnet School")
+
+        pop_perc.write(1, (i*3)+x_offset, "Regular School")
+        pop_perc.write(1, (i*3)+1+x_offset, "Charter School")
+        pop_perc.write(1, (i*3)+2+x_offset, "Magnet School")
+
+        # Print out the data
+        for j, result in enumerate(results[i]):
+            if j < count:
+                # Headers only on the first year
+                if (i == 0):
+                    sch_types.write(y_offset+j, 0, category_lut[result[0]])
+                    sch_types.write(y_offset+j, 1, fips_to_st[result[0][:2]][0])
+                sch_types.write(y_offset+j, (i*3)+2, result[2])
+                sch_types.write(y_offset+j, (i*3)+3, result[4])
+                sch_types.write(y_offset+j, (i*3)+4, result[6])
+
+                # Headers only on the first year
+                if (i == 0):
+                    pop_perc.write(y_offset+j, 0, category_lut[result[0]])
+                    pop_perc.write(y_offset+j, 1, fips_to_st[result[0][:2]][0])
+                member_count = result[1]
+                if member_count > 0:
+                    pop_perc.write(y_offset+j, (i*3)+2, float(result[3])/member_count)
+                    pop_perc.write(y_offset+j, (i*3)+3, float(result[5])/member_count)
+                    pop_perc.write(y_offset+j, (i*3)+4, float(result[7])/member_count)
+
     wb.save(filename)
 
 
@@ -306,7 +326,7 @@ def main(argv):
 
     # Lets calculate all the data first
     if args.debug:
-        year_range = range(1987,1990)
+        year_range = range(2009,2011)
         groups = ['BLACK']
     else:
         year_range = range(1987, 2011)
@@ -336,10 +356,18 @@ def main(argv):
         idx['MATCH_VAL'] = args.match_val
 
     if args.sch_count:
-        # Count of schools and charters and what not
-        nces = NCESParser(year=2010)
-        schools = nces.parse(make_dict=True)
-        results = sch_type_report(schools, category)
+
+        results = []
+        data_years = []
+        for year in year_range:
+            # Count of schools and charters and what not
+            nces = NCESParser(year=year)
+            schools = nces.parse(make_dict=True)
+            try:
+                results.append(sch_type_report(schools, category))
+                data_years.append(year)
+            except KeyError:
+                pass
 
         # Get some information for reporting
         segcalc = SegCalc(schools, idx)
@@ -349,10 +377,11 @@ def main(argv):
             category_lut = dict(zip(fips_to_st.keys(), [fips_to_st[key][0] for key in fips_to_st.keys()]))
 
         save_sch_report(
+            data_years,
             results,
             report_count,
             category_lut,
-            'school_type_' + args.outfile
+            args.outfile
         )
 
     else:
