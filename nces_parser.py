@@ -167,8 +167,6 @@ class NCESParser(object):
         else:
             self.formatfile = formatfile
             self.year = 0
-        # Load the network
-        self.read_formatfile(self.formatfile)
 
     def __repr__(self):
         results = ""
@@ -334,6 +332,10 @@ class NCESParser(object):
 
     # --------------------------------------
     def parse_orig(self, datafile="", make_dict=False):
+        # Read the format file
+        self.read_formatfile(self.formatfile)
+
+        # Now open the data file
         if datafile:
             fname = datafile
         else:
