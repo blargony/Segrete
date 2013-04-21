@@ -120,6 +120,49 @@ class SegCalc(object):
         return Total
 
     # ======================================
+    def calc_proportion(self, idx=None):
+        """
+        Get a report on the total student count and so forth
+        """
+        if idx == 'Y_GROUP':
+            local_idx = self.y_group_idx
+        elif idx == 'Z_GROUP':
+            local_idx = self.z_group_idx
+        else:  # Assume minority group
+            local_idx = self.y_group_idx
+
+        Proportion = {}
+        Total = {}
+        for school in self.filtered_data:
+            try:
+                cnt = int(school[local_idx])
+                ti = int(school[self.total_idx])
+            except KeyError:
+                raise Exception("Problem School:",school.__repr__())
+
+            # Negative numbers mean missing data
+            if cnt < 0 or ti < 0:
+                continue
+
+            # Make sure the datastructure exists
+            try:
+                Proportion[school[self.cat_idx]] += cnt
+                Total[school[self.cat_idx]] += ti
+            except KeyError:
+                Proportion[school[self.cat_idx]] = cnt
+                Total[school[self.cat_idx]] = ti
+
+        for cat_idx in Proportion.keys():
+            try:
+                Proportion[cat_idx] = float(Proportion[cat_idx]) / Total[cat_idx]
+            except ZeroDivisionError:
+                Proportion[cat_idx] = 0.0
+
+        # import pprint
+        # pprint.pprint(Proportion)
+        return Proportion
+
+    # ======================================
     def calc_percentages(self):
         """
         Get a report on the total student count and so forth
