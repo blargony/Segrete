@@ -13,6 +13,7 @@ import pickle
 import unittest
 
 from fips import fips_to_st
+from urban import urban_dist
 
 # ==============================================================================
 # Constants and RegEx
@@ -376,7 +377,7 @@ class NCESParser(object):
         return dict(zip(self.headers, school))
 
     # --------------------------------------
-    def save_parsed_data(self):
+    def save_parsed_data(self, urban_only=False):
         """
         Save out the parsed data
         """
@@ -386,11 +387,15 @@ class NCESParser(object):
         cfh = csv.writer(fh, quoting=csv.QUOTE_NONNUMERIC)
         cfh.writerow(self.get_headers())
 
-        print "Saving %d Entries to CSV File %s" % (len(self.schools), fname)
+        count = 0
         for school in self.schools:
-            if self.debug:
-                print school
-            cfh.writerow(school)
+            if (not urban_only or
+                    urban_only and school[self.get_idx('LEAID')] in urban_dist):
+                if self.debug:
+                    print school
+                cfh.writerow(school)
+                count += 1
+        print "Saved %d Entries to CSV File %s" % (count, fname)
 
     # --------------------------------------
     def pickle_data(self):
@@ -432,6 +437,8 @@ def main():
             help='Save a reduced CSV of the NCES Data File')
     parser.add_argument('-update_pk', action='store_true', dest='update_pk', required=False,
             help='Cache the parsed dataset to disk')
+    parser.add_argument('-urban_only', action='store_true', dest='urban_only', required=False,
+            help='Filter out non-Urban Districts')
     parser.add_argument('-debug', action='store_true',
             help='Print Debug Messages')
     args = parser.parse_args()
@@ -447,7 +454,7 @@ def main():
             print "=" * 80
             parse = NCESParser(year=year, debug=args.debug)
             parse.parse(forced_orig=True)
-            parse.save_parsed_data()
+            parse.save_parsed_data(args.urban_only)
     elif args.update_pk:
         for year in range(1987, 2011):
             print "=" * 80
