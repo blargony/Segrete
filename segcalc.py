@@ -142,6 +142,40 @@ class SegCalc(object):
     # Calculation Methods
     # ======================================
     # ======================================
+    def calc_sum(self, x_dict, y_dict):
+        """
+        Given two dictionaries that are grouped data entries, calculate
+        a new dictionary that is the grouped proportion.
+        """
+        sum_dict = {}
+        for key in x_dict.keys():
+            try:
+                sum_dict[key] = x_dict[key] + y_dict[key]
+            except KeyError:
+                raise Exception("Input Dicts didn't have the same keys")
+                # Missing Key in Y_dict, just use X_dict value only
+                # sum_dict[key] = x_dict[key]
+        return sum_dict
+
+    # ======================================
+    def calc_prop(self, num_dict, den_dict):
+        """
+        Given two dictionaries that are grouped data entries, calculate
+        a new dictionary that is the grouped proportion.
+        """
+        prop_dict = {}
+        for key in num_dict.keys():
+            try:
+                prop_dict[key] = float(num_dict[key]) / float(den_dict[key])
+            except ZeroDivisionError:
+                prop_dict[key] = 0.0
+            except KeyError:
+                prop_dict[key] = 0.0
+                # raise Exception("Numerator and Denominator Dicts didn't have the same keys")
+        return prop_dict
+
+
+    # ======================================
     def calc_totals(self, idx=None):
         """
         Get a report on the total student count and so forth
@@ -162,6 +196,34 @@ class SegCalc(object):
                     Total[school[self.cat_idx]] += ti
                 except KeyError:
                     Total[school[self.cat_idx]] = ti
+        return Total
+
+    # ======================================
+    def calc_dependant_totals(self, sum_idx, dep_idx):
+        """
+        Get a report on the total student count and so forth
+        """
+        Total = {}
+        for school in self.filtered_data:
+            try:
+                test = Total[school[self.cat_idx]]
+            except KeyError:
+                Total[school[self.cat_idx]] = 0
+
+            try:
+                dependant_field = school[dep_idx]
+            except KeyError:
+                dependant_field = 0
+
+            if (dependant_field == '1' or
+                dependant_field == 1 or
+                dependant_field == 'Y'):
+                ti = school[sum_idx]
+
+                # Make sure the datastructure exists
+                # Negative numbers mean missing data.
+                if ti >= 0:
+                    Total[school[self.cat_idx]] += ti
         return Total
 
     # ======================================
