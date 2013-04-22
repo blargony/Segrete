@@ -45,7 +45,7 @@ def calc_idxes(segcalc):
     chr_idx = segcalc.calc_dependant_totals(sum_idx='MEMBER', dep_idx='CHARTR')
     pchr_idx = segcalc.calc_prop(chr_idx, tot_idx)
     print "Calculating Proportion of Students in a Magnet or Charter"
-    chc_idx = segcalc.calc_sum(mag_idx, chr_idx)
+    chc_idx = segcalc.calc_dependant_totals(sum_idx='MEMBER', dep_idx='CHARTR', sec_dep_idx='MAGNET')
     pchc_idx = segcalc.calc_prop(chc_idx, tot_idx)
     print "Done with Calculations"
     return (dis_idx, exp_idx, iso_idx, min_idx, tot_idx, mper_idx, pmag_idx, pchr_idx, pchc_idx)
