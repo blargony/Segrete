@@ -199,7 +199,7 @@ class SegCalc(object):
         return Total
 
     # ======================================
-    def calc_dependant_totals(self, sum_idx, dep_idx):
+    def calc_dependant_totals(self, sum_idx, dep_idx, sec_dep_idx=None):
         """
         Get a report on the total student count and so forth
         """
@@ -214,10 +214,17 @@ class SegCalc(object):
                 dependant_field = school[dep_idx]
             except KeyError:
                 dependant_field = 0
+            try:
+                sec_dependant_field = school[sec_dep_idx]
+            except KeyError:
+                sec_dependant_field = 0
 
             if (dependant_field == '1' or
                 dependant_field == 1 or
-                dependant_field == 'Y'):
+                dependant_field == 'Y' or
+                sec_dependant_field == '1' or
+                sec_dependant_field == 1 or
+                sec_dependant_field == 'Y'):
                 ti = school[sum_idx]
 
                 # Make sure the datastructure exists
