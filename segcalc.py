@@ -32,11 +32,21 @@ class SegCalc(object):
         """
         self.debug = 0
         self.data = data_list
-        self.y_group_idx = index_dict['Y_GROUP']  # Minority Group Student Count
-        self.z_group_idx = index_dict['Z_GROUP']  # Majority Group Student Count
+        self.minority_idx = index_dict['MINORITY']  # Minority Group Student Count
+        self.majority_idx = index_dict['MAJORITY']  # Majority Group Student Count
         self.total_idx = index_dict['TOTAL']      # Total Student Count
         self.cat_idx = index_dict['CATEGORY']     # Index to Categorize along (state, district, etc)
-        self.sub_cat_idx = index_dict['SUB_CAT']  # Index to Sub Categorize along (grades, district, zip, etc)
+
+        # Search for Some optional arguments
+        try:
+            self.sec_minority_idx = index_dict['SEC_MINORITY']  # Minority Group Student Count
+        except KeyError:
+            self.sec_minority_idx = None
+
+        try:
+            self.sub_cat_idx = index_dict['SUB_CAT']  # Index to Sub Categorize along (grades, district, zip, etc)
+        except KeyError:
+            self.sub_cat_idx = None
 
         # Skip items that don't match item[idx] == val
         try:
@@ -47,7 +57,47 @@ class SegCalc(object):
             self.match = False
 
     # ======================================
-    # Support Functions
+    # Basic Accessors Functions
+    # ======================================
+    def get_minority(self, school):
+        """
+        Return the minority student count for a given school
+        Handle a secondary minority group, if requested
+        """
+        try:
+            count = int(school[self.minority_idx])
+            if self.sec_minority_idx:
+                count += int(school[self.sec_minority_idx])
+        except KeyError:
+            raise Exception("Problem School:",school.__repr__())
+        return count
+
+    # ======================================
+    def get_majority(self, school):
+        """
+        Return the majority student count for a given school
+        """
+        # Free Lunch Majority is the non-Free Lunch people
+        if self.minority_idx == 'FRELCH':
+            return self.get_members(school) - self.get_minority(school)
+        else:
+            try:
+                count = int(school[self.majority_idx])
+            except KeyError:
+                raise Exception("Problem School:",school.__repr__())
+            return count
+
+    # ======================================
+    def get_members(self, school):
+        """
+        Return the total student count for a given school
+        """
+        try:
+            count = int(school[self.total_idx])
+        except KeyError:
+            raise Exception("Problem School:",school.__repr__())
+        return count
+
     # ======================================
     @property
     def filtered_data(self):
@@ -89,77 +139,47 @@ class SegCalc(object):
         return Mapping
 
     # ======================================
+    # Calculation Methods
+    # ======================================
+    # ======================================
     def calc_totals(self, idx=None):
         """
         Get a report on the total student count and so forth
         """
-        if idx == 'Y_GROUP':
-            local_idx = self.y_group_idx
-        elif idx == 'Z_GROUP':
-            local_idx = self.z_group_idx
-        else:
-            local_idx = self.total_idx
-
         Total = {}
         for school in self.filtered_data:
-            try:
-                ti = school[local_idx]
-            except KeyError:
-                raise Exception("Problem School:",school.__repr__())
+            if idx == 'MINORITY':
+                ti = self.get_minority(school)
+            elif idx == 'MAJORITY':
+                ti = self.get_majority(school)
+            else:
+                ti = self.get_members(school)
 
             # Make sure the datastructure exists
-            try:
-                test = Total[school[self.cat_idx]]
-            except KeyError:
-                Total[school[self.cat_idx]] = 0
-
             # Negative numbers mean missing data.
             if ti >= 0:
-                Total[school[self.cat_idx]] += ti
-
+                try:
+                    Total[school[self.cat_idx]] += ti
+                except KeyError:
+                    Total[school[self.cat_idx]] = ti
         return Total
 
     # ======================================
-    def calc_proportion(self, idx=None):
+    def calc_proportion(self, idx='MINORITY'):
         """
         Get a report on the total student count and so forth
         """
-        if idx == 'Y_GROUP':
-            local_idx = self.y_group_idx
-        elif idx == 'Z_GROUP':
-            local_idx = self.z_group_idx
-        else:  # Assume minority group
-            local_idx = self.y_group_idx
+        Proportion = self.calc_totals(idx)
+        Total = self.calc_totals()
 
-        Proportion = {}
-        Total = {}
-        for school in self.filtered_data:
-            try:
-                cnt = int(school[local_idx])
-                ti = int(school[self.total_idx])
-            except KeyError:
-                raise Exception("Problem School:",school.__repr__())
-
-            # Negative numbers mean missing data
-            if cnt < 0 or ti < 0:
-                continue
-
-            # Make sure the datastructure exists
-            try:
-                Proportion[school[self.cat_idx]] += cnt
-                Total[school[self.cat_idx]] += ti
-            except KeyError:
-                Proportion[school[self.cat_idx]] = cnt
-                Total[school[self.cat_idx]] = ti
-
+        # Convert the counts to a proportion
         for cat_idx in Proportion.keys():
             try:
                 Proportion[cat_idx] = float(Proportion[cat_idx]) / Total[cat_idx]
             except ZeroDivisionError:
                 Proportion[cat_idx] = 0.0
-
-        # import pprint
-        # pprint.pprint(Proportion)
+            except KeyError:
+                Proportion[cat_idx] = 0.0
         return Proportion
 
     # ======================================
@@ -221,7 +241,7 @@ class SegCalc(object):
         Sum = {}
         for school in self.filtered_data:
             try:
-                yi = school[self.y_group_idx]
+                yi = school[self.minority_idx]
                 ti = school[self.total_idx]
             except KeyError:
                 raise Exception("Problem School:",school.__repr__())
@@ -266,12 +286,10 @@ class SegCalc(object):
 
         return Y
 
-
- 
     # ======================================
     # Segragation Calculations
     # ======================================
-    def calc_iso_exp_idx(self, yidx, zidx):
+    def calc_iso_exp_idx(self, get_min, get_maj):
         """
         Calculate the Exposure or Isolation Index
         - Exposure:  How much exposure does one group get to another group?
@@ -294,15 +312,9 @@ class SegCalc(object):
         Y = {}
         Sum = {}
         for school in self.filtered_data:
-            try:
-                yi = school[yidx]
-                zi = school[zidx]
-                ti = school[self.total_idx]
-                # Special case for Free/Reduced Lunch
-                if yidx == 'FRELCH' and zidx != 'FRELCH':
-                    zi = ti - yi
-            except KeyError:
-                raise Exception("Problem School:",school.__repr__())
+            yi = get_min(school)
+            zi = get_maj(school)
+            ti = self.get_members(school)
 
             # Make sure the datastructure exists
             try:
@@ -354,13 +366,12 @@ class SegCalc(object):
     # ======================================
     def calc_exp_idx(self):
         # Expose Y Group to Z Group
-        return self.calc_iso_exp_idx(self.y_group_idx, self.z_group_idx)
+        return self.calc_iso_exp_idx(self.get_minority, self.get_majority)
 
     # ======================================
     def calc_iso_idx(self):
         # Expose a group to itself
-        return self.calc_iso_exp_idx(self.y_group_idx, self.y_group_idx)
-
+        return self.calc_iso_exp_idx(self.get_minority, self.get_minority)
 
     # ======================================
     def calc_cat_totals(self):
@@ -383,11 +394,9 @@ class SegCalc(object):
         Py = {}
         Pz = {}
         for school in self.filtered_data:
-            ti = school[self.total_idx]
-            giy = school[self.y_group_idx]
-            giz = school[self.z_group_idx]
-            if self.y_group_idx == 'FRELCH':
-                giz = ti - giy
+            ti = self.get_members(school)
+            giy = self.get_minority(school)
+            giz = self.get_majority(school)
 
             # Make sure to create an entry for
             # every school, even if the data is bogus
@@ -464,9 +473,9 @@ class SegCalc(object):
         # Now we have Py/Pz, we can calculate the numerator
         Num = {}
         for school in self.filtered_data:
-            giy = school[self.y_group_idx]
-            giz = school[self.z_group_idx]
-            ti = school[self.total_idx]
+            ti = self.get_members(school)
+            giy = self.get_minority(school)
+            giz = self.get_majority(school)
 
             # Make sure the datastructure exists
             try:
@@ -550,10 +559,10 @@ class SegCalc(object):
                 print "Schools in Category %s:  %d" % (cat, len(schools_by_cat[cat]))
             for ischool in schools_by_cat[cat]:
                 for jschool in schools_by_cat[cat]:
-                    ti = ischool[self.total_idx]
-                    gyi = ischool[self.y_group_idx]
-                    tj = jschool[self.total_idx]
-                    gyj = jschool[self.y_group_idx]
+                    ti = self.get_members(ischool)
+                    gyi = self.get_minority(ischool)
+                    tj = self.get_members(jschool)
+                    gyj = self.get_minority(jschool)
 
                     # Make sure the datastructure exists
                     try:
@@ -625,7 +634,7 @@ class SegCalc(object):
 
         schools_and_y_group = []
         for school in self.filtered_data:
-            giy = school[self.y_group_idx]
+            giy = school[self.minority_idx]
             ti = school[self.total_idx]
             try:
                 schools_and_y_group.append((giy/ti, giy, ti, school))

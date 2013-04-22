@@ -17,7 +17,7 @@ from xlwt import Workbook
 # Constants
 # ==============================================================================
 # Maximum number of rows to report in an output file.
-MAX_RECORD = 100
+MAX_RECORD = 1000
 
 # ==============================================================================
 # Functions
@@ -33,11 +33,11 @@ def calc_idxes(segcalc):
     print "Calculating Isolation Index"
     iso_idx = segcalc.calc_iso_idx()
     print "Calculating Total Minority Students"
-    min_idx = segcalc.calc_totals(idx='Y_GROUP')
+    min_idx = segcalc.calc_totals('MINORITY')
     print "Calculating Total Student Count"
     tot_idx = segcalc.calc_totals()
     print "Calculating Proportion of Students in the Minority"
-    mper_idx = segcalc.calc_proportion(idx='Y_GROUP')
+    mper_idx = segcalc.calc_proportion(idx='MINORITY')
     print "Done with Calculations"
     return (dis_idx, exp_idx, iso_idx, min_idx, tot_idx, mper_idx)
 
@@ -54,14 +54,14 @@ def save_report(year_range, idxes, count, category_list, category_txt, category_
         - worksheets is a list of XLS worksheets, one per report in idxes
     """
     wb = Workbook()
+    dws = wb.add_sheet('Dissimilarity Index')
     ews = wb.add_sheet('Exposure Index')
     iws = wb.add_sheet('Isolation Index')
-    dws = wb.add_sheet('Dissimilarity Index')
     min = wb.add_sheet('Minority Student Count')
     size = wb.add_sheet('Student Count')
     mper = wb.add_sheet('Minority Student Proportion')
 
-    worksheets = [ews, iws, dws, min, size, mper]
+    worksheets = [dws, ews, iws, min, size, mper]
 
     # Create the headers/labels row/col
     for ws in worksheets:
@@ -130,15 +130,20 @@ def main(argv):
     # Lets calculate all the data first
     if args.debug:
         year_range = range(2009,2011)
-        groups = ['BLACK']
+        minorities = ['BLACK']
+        sec_minorities = [None]
+        majorities = ['WHITE']
+        filenames = ['blacks_white']
     else:
         year_range = range(1987, 2011)
-        # year_range = range(1987,1990)
-        groups = ['BLACK', 'HISP', 'WHITE', 'FRELCH']
+        minorities = ['BLACK', 'HISP', 'BLACK', 'HISP', 'FRELCH']
+        sec_minorities = [None, None, 'HISP', None, None]
+        majorities = ['WHITE', 'WHITE', 'WHITE', 'BLACK', None]
+        filenames = ['blacks_white', 'hisp_white', 'minorities_white', 'hisp_black', 'free_lunch']
 
     # Override the default years/groups per command line requests
     if args.group:
-        groups = [args.group]
+        minorities = [args.group]
     if args.year:
         year_range = [args.year]
     if args.max_record:
@@ -148,8 +153,8 @@ def main(argv):
 
     # Default search query
     idx = {
-        'Y_GROUP': 'BLACK',
-        'Z_GROUP': 'WHITE',
+        'MINORITY': 'BLACK',
+        'MAJORITY': 'WHITE',
         'TOTAL': 'MEMBER',
         'CATEGORY': category,
         'SUB_CAT': 'LEAID',
@@ -158,8 +163,17 @@ def main(argv):
         idx['MATCH_IDX'] = args.match_idx
         idx['MATCH_VAL'] = args.match_val
 
-    for group in groups:
+    for i, group in enumerate(minorities):
+        idx['MINORITY'] = minorities[i]
+        idx['SEC_MINORITY'] = sec_minorities[i]
+        idx['MAJORITY'] = majorities[i]
+        print "*" * 80
+        print "Running all calculations with the following parameters"
+        print "*" * 80
+        print idx
+        print "*" * 80
         idxes = [[], [], [], [], [], []]
+
         for year in year_range:
             print "Loading NCES Data from:  %d" % year
             nces = NCESParser(year=year)
@@ -169,7 +183,6 @@ def main(argv):
                 # print schools
                 pass
             # Get our data query ready
-            idx['Y_GROUP'] = group
             segcalc = SegCalc(schools, idx)
             if category == 'LEAID':
                 category_lut = segcalc.get_idxed_val('LEAID', 'LEANM')
@@ -179,28 +192,22 @@ def main(argv):
                 category_lut2 = None
 
             print "Performing Calculations on Data from:  %d" % year
-            exp,iso,dis,min,tot,mper = calc_idxes(segcalc)
+            dis,exp,iso,min,tot,mper = calc_idxes(segcalc)
             print "Finished Performing Calculations on Data from:  %d" % year
 
             print "Appending Yearly Data"
-            idxes[0].append(exp)
-            idxes[1].append(iso)
-            idxes[2].append(dis)
+            idxes[0].append(dis)
+            idxes[1].append(exp)
+            idxes[2].append(iso)
             idxes[3].append(min)
             idxes[4].append(tot)
             idxes[5].append(mper)
 
         print "Sorting By Size of the last year"
         category_by_size = sorted(tot.iteritems(), key=operator.itemgetter(1), reverse=True)
-
-        print "Filtering out Districts with very low minority percentages"
         category_list = []
         for category, total in category_by_size:
-            if total > 1000 and min[category]/total > 0.1:
-                category_list.append(category)
-            else:
-                if args.debug:
-                    print "Skipping District:  %s, Total Students: %d, Group Students: %d" % (category_lut[category], tot[category], min[category])
+            category_list.append(category)
 
         print "Generating Report"
         save_report(
@@ -210,7 +217,7 @@ def main(argv):
                 category_list,
                 category_lut,
                 category_lut2,
-                group.lower() + '_' + args.outfile
+                filenames[i] + '_' + args.outfile
             )
 
 # -------------------------------------
