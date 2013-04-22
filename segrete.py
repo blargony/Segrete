@@ -38,8 +38,17 @@ def calc_idxes(segcalc):
     tot_idx = segcalc.calc_totals()
     print "Calculating Proportion of Students in the Minority"
     mper_idx = segcalc.calc_proportion(idx='MINORITY')
+    print "Calculating Proportion of Students in a Magnet"
+    mag_idx = segcalc.calc_dependant_totals(sum_idx='MEMBER', dep_idx='MAGNET')
+    pmag_idx = segcalc.calc_prop(mag_idx, tot_idx)
+    print "Calculating Proportion of Students in a Charter"
+    chr_idx = segcalc.calc_dependant_totals(sum_idx='MEMBER', dep_idx='CHARTR')
+    pchr_idx = segcalc.calc_prop(chr_idx, tot_idx)
+    print "Calculating Proportion of Students in a Magnet or Charter"
+    chc_idx = segcalc.calc_sum(mag_idx, chr_idx)
+    pchc_idx = segcalc.calc_prop(chc_idx, tot_idx)
     print "Done with Calculations"
-    return (dis_idx, exp_idx, iso_idx, min_idx, tot_idx, mper_idx)
+    return (dis_idx, exp_idx, iso_idx, min_idx, tot_idx, mper_idx, pmag_idx, pchr_idx, pchc_idx)
 
 # -------------------------------------
 def save_report(year_range, idxes, count, category_list, category_txt, category_txt2, filename):
@@ -59,9 +68,12 @@ def save_report(year_range, idxes, count, category_list, category_txt, category_
     iws = wb.add_sheet('Isolation Index')
     min = wb.add_sheet('Minority Student Count')
     size = wb.add_sheet('Student Count')
-    mper = wb.add_sheet('Minority Student Proportion')
+    mper = wb.add_sheet('Minority Proportion')
+    pmag = wb.add_sheet('Magnet Proportion')
+    pchr = wb.add_sheet('Charter Proportion')
+    pchc = wb.add_sheet('Choice Proportion')
 
-    worksheets = [dws, ews, iws, min, size, mper]
+    worksheets = [dws, ews, iws, min, size, mper, pmag, pchr, pchc]
 
     # Create the headers/labels row/col
     for ws in worksheets:
@@ -91,7 +103,7 @@ def save_report(year_range, idxes, count, category_list, category_txt, category_
             if j < count:
                 for k, idx in enumerate(idxes):
                     try:
-                        if idx[i][st] < 0.001:
+                        if k <= 5 and idx[i][st] < 0.001:
                             worksheets[k].write(j+1, i+offset, "")
                         else:
                             worksheets[k].write(j+1, i+offset, idx[i][st])
@@ -172,7 +184,7 @@ def main(argv):
         print "*" * 80
         print idx
         print "*" * 80
-        idxes = [[], [], [], [], [], []]
+        idxes = [[], [], [], [], [], [], [], [], []]
 
         for year in year_range:
             print "Loading NCES Data from:  %d" % year
@@ -192,7 +204,7 @@ def main(argv):
                 category_lut2 = None
 
             print "Performing Calculations on Data from:  %d" % year
-            dis,exp,iso,min,tot,mper = calc_idxes(segcalc)
+            dis,exp,iso,min,tot,mper,pmag,pchr,pchc = calc_idxes(segcalc)
             print "Finished Performing Calculations on Data from:  %d" % year
 
             print "Appending Yearly Data"
@@ -202,6 +214,9 @@ def main(argv):
             idxes[3].append(min)
             idxes[4].append(tot)
             idxes[5].append(mper)
+            idxes[6].append(pmag)
+            idxes[7].append(pchr)
+            idxes[8].append(pchc)
 
         print "Sorting By Size of the last year"
         category_by_size = sorted(tot.iteritems(), key=operator.itemgetter(1), reverse=True)
