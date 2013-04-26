@@ -102,6 +102,7 @@ class NCESParser(object):
             "WHITE",
             "MEMBER",
             "FRELCH",
+            "REDLCH",
             "TYPE",
             "STATUS",
             "GSHI",
