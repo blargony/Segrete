@@ -67,13 +67,13 @@ def save_report(year_range, idxes, count, category_list, category_txt, category_
     ews = wb.add_sheet('Exposure Index')
     iws = wb.add_sheet('Isolation Index')
     min = wb.add_sheet('Minority Student Count')
-    size = wb.add_sheet('Student Count')
+    tot = wb.add_sheet('Student Count')
     mper = wb.add_sheet('Minority Proportion')
     pmag = wb.add_sheet('Magnet Proportion')
     pchr = wb.add_sheet('Charter Proportion')
     pchc = wb.add_sheet('Choice Proportion')
 
-    worksheets = [dws, ews, iws, min, size, mper, pmag, pchr, pchc]
+    worksheets = [dws, ews, iws, min, tot, mper, pmag, pchr, pchc]
 
     # Create the headers/labels row/col
     for ws in worksheets:
@@ -124,8 +124,12 @@ def main(argv):
             help='Only use data points that match some criterion')
     parser.add_argument('--match_val', action='store', dest='match_val', required=False,
             help='Value to match when using --match_idx')
-    parser.add_argument('--group', action='store', dest='group', required=False,
+    parser.add_argument('--minority', action='store', dest='minority', required=False,
             help='Override the default list of Minority Groups')
+    parser.add_argument('--sec_minority', action='store', dest='sec_minority', required=False,
+            help='Override the default list of Secondary Minority Groups')
+    parser.add_argument('--majority', action='store', dest='majority', required=False,
+            help='Override the default list of Majority Groups')
     parser.add_argument('--year', action='store', dest='year', required=False, type=int,
             help='Override the default list of years to report on')
     parser.add_argument('--max_record', action='store', dest='max_record', required=False,
@@ -148,16 +152,23 @@ def main(argv):
         filenames = ['blacks_white']
     else:
         year_range = range(1987, 2011)
-        minorities = ['BLACK', 'HISP', 'BLACK', 'HISP', 'FRELCH']
-        sec_minorities = [None, None, 'HISP', None, None]
-        majorities = ['WHITE', 'WHITE', 'WHITE', 'BLACK', None]
-        filenames = ['blacks_white', 'hisp_white', 'minorities_white', 'hisp_black', 'free_lunch']
+        minorities     = ['BLACK', 'HISP', 'BLACK', 'HISP', 'FRELCH', 'FRELCH']
+        sec_minorities = [None, None, 'HISP', None, None, 'REDLCH']
+        majorities     = ['WHITE', 'WHITE', 'WHITE', 'BLACK', None, None]
+        filenames      = ['blacks_white', 'hisp_white', 'minorities_white', 'hisp_black', 'free_lunch', 'free_red_lunch']
 
     # Override the default years/groups per command line requests
-    if args.group:
-        minorities = [args.group]
     if args.year:
         year_range = [args.year]
+    if args.minority:
+        minorities = [args.minority]
+        filenames = [""]
+    if args.sec_minority:
+        sec_minorities = [args.sec_minorities]
+    if args.majority:
+        majorities = [args.majority]
+
+    # Print out more or fewer records than the default
     if args.max_record:
         report_count = int(args.max_record)
     else:
@@ -184,7 +195,8 @@ def main(argv):
         print "*" * 80
         print idx
         print "*" * 80
-        idxes = [[], [], [], [], [], [], [], [], []]
+        DATASETS = 9
+        datasets = [[] for _ in range(DATASETS)]
 
         for year in year_range:
             print "Loading NCES Data from:  %d" % year
@@ -204,22 +216,15 @@ def main(argv):
                 category_lut2 = None
 
             print "Performing Calculations on Data from:  %d" % year
-            dis,exp,iso,min,tot,mper,pmag,pchr,pchc = calc_idxes(segcalc)
+            dataset = calc_idxes(segcalc)
             print "Finished Performing Calculations on Data from:  %d" % year
 
             print "Appending Yearly Data"
-            idxes[0].append(dis)
-            idxes[1].append(exp)
-            idxes[2].append(iso)
-            idxes[3].append(min)
-            idxes[4].append(tot)
-            idxes[5].append(mper)
-            idxes[6].append(pmag)
-            idxes[7].append(pchr)
-            idxes[8].append(pchc)
+            for j in range(DATASETS):
+                datasets[j].append(dataset[j])
 
         print "Sorting By Size of the last year"
-        category_by_size = sorted(tot.iteritems(), key=operator.itemgetter(1), reverse=True)
+        category_by_size = sorted(dataset[4].iteritems(), key=operator.itemgetter(1), reverse=True)
         category_list = []
         for category, total in category_by_size:
             category_list.append(category)
@@ -227,7 +232,7 @@ def main(argv):
         print "Generating Report"
         save_report(
                 year_range,
-                idxes,
+                datasets,
                 report_count,
                 category_list,
                 category_lut,

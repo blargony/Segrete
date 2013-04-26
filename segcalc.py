@@ -69,7 +69,8 @@ class SegCalc(object):
             if self.sec_minority_idx:
                 count += int(school[self.sec_minority_idx])
         except KeyError:
-            raise Exception("Problem School:",school.__repr__())
+            # raise Exception("Problem School:",school.__repr__())
+            return 0
         return count
 
     # ======================================
