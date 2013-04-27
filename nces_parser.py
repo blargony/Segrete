@@ -196,6 +196,8 @@ class NCESParser(object):
                 type = 'AN'
             if col_name[:4] == "FIPS":
                 type = 'AN'
+            if col_name[:4] == "GSL0":  # 1994 typo in the format file.
+                col_name = "GSLO"
             if col_name == "FLE%02d" % (self.year%100):
                 col_name = "FRELCH"
             if col_name == ("IND%02d" % (self.year%100)):
