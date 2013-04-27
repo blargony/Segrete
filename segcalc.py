@@ -24,7 +24,7 @@ class SegCalc(object):
     """
     A segregation calculating object.
     """
-    def __init__(self, data_list, index_dict):
+    def __init__(self, data_list, index_dict, only_hs=False, only_el=False):
         """
         Set a dataset iterator object that we can step through
         and a dictionary of indexes for extracting the information
@@ -32,6 +32,8 @@ class SegCalc(object):
         """
         self.debug = 0
         self.data = data_list
+        self.only_high_school = only_hs
+        self.only_elementary = only_el
         self.minority_idx = index_dict['MINORITY']  # Minority Group Student Count
         self.majority_idx = index_dict['MAJORITY']  # Majority Group Student Count
         self.total_idx = index_dict['TOTAL']      # Total Student Count
@@ -107,21 +109,38 @@ class SegCalc(object):
         data index and value.  Cache the results for
         later use
         """
-        if self.match == False:
-            return self.data
-        else:
-            if self.match_val.isdigit():
-                match_int_val = int(self.match_val)
-            try:
-                return self._filtered_data
-            except AttributeError:
+        try:
+            return self._filtered_data
+        except AttributeError:
+            if (
+                self.match == False and
+                self.only_high_school == False and
+                self.only_elementary == False
+            ):
+                self._filtered_data = self.data
+            else:
+
                 self._filtered_data = []
+
                 for data in self.data:
-                    if data[self.match_idx] == self.match_val:
+                    append_data = False
+
+                    if self.match:
+                        if self.match_val.isdigit():
+                            match_int_val = int(self.match_val)
+                        if (
+                            data[self.match_idx] == self.match_val or
+                            data[self.match_idx] == match_int_val
+                            ):
+                            append_data = True
+                    if self.only_high_school and self.is_high_school(data):
+                        append_data = True
+                    if self.only_elementary and self.is_elementary(data):
+                        append_data = True
+
+                    if append_data:
                         self._filtered_data.append(data)
-                    if data[self.match_idx] == match_int_val:
-                        self._filtered_data.append(data)
-                return self._filtered_data
+            return self._filtered_data
 
     # ======================================
     def get_idxed_val(self, idx_x, idx_y):
@@ -138,6 +157,60 @@ class SegCalc(object):
 
             Mapping[x] = y
         return Mapping
+
+    # ======================================
+    def get_grade(self, school, high=True):
+        """
+        Get the high or low grade
+        """
+        if high:
+            grade_idx = 'GSHI'
+        else:
+            grade_idx = 'GSLO'
+
+        try:
+            grade = int(school[grade_idx])
+        except KeyError:
+            raise Exception("Problem School:",school.__repr__())
+        except ValueError:
+            if (
+                school[grade_idx] == 'PK' or
+                school[grade_idx] == 'KG'
+                ):
+                grade = 1
+            elif (
+                school[grade_idx] == 'UG' or
+                school[grade_idx] == 'N' or
+                school[grade_idx][0] == '.'
+                ):
+                grade = 0
+            else:
+                raise Exception("Unknown Grade: %s" % (school[grade_idx]))
+        return grade
+
+    # ======================================
+    def is_elementary(self, school):
+        """
+        Is this school an elementary school?
+        """
+        high_grade = self.get_grade(school, high=True)
+
+        if high_grade <= 6 and high_grade > 0:
+            return True
+        else:
+            return False
+
+    # ======================================
+    def is_high_school(self, school):
+        """
+        Is this school an elementary school?
+        """
+        low_grade = self.get_grade(school, high=False)
+
+        if low_grade >= 9:
+            return True
+        else:
+            return False
 
     # ======================================
     # Calculation Methods
