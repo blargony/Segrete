@@ -45,11 +45,6 @@ class SegCalc(object):
         except KeyError:
             self.sec_minority_idx = None
 
-        try:
-            self.sub_cat_idx = index_dict['SUB_CAT']  # Index to Sub Categorize along (grades, district, zip, etc)
-        except KeyError:
-            self.sub_cat_idx = None
-
         # Skip items that don't match item[idx] == val
         try:
             self.match = True
