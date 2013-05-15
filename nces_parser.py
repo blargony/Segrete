@@ -14,6 +14,7 @@ import unittest
 
 from fips import fips_to_st
 from urban import urban_dist
+from tuda import tuda_dist
 
 # ==============================================================================
 # Constants and RegEx
@@ -380,7 +381,7 @@ class NCESParser(object):
         return dict(zip(self.headers, school))
 
     # --------------------------------------
-    def save_parsed_data(self, urban_only=False):
+    def save_parsed_data(self, sd_list=[], sd_list_only=False):
         """
         Save out the parsed data
         """
@@ -392,8 +393,8 @@ class NCESParser(object):
 
         count = 0
         for school in self.schools:
-            if (not urban_only or
-                    urban_only and school[self.get_idx('LEAID')] in urban_dist):
+            if (not sd_list_only or
+                    sd_list_only and school[self.get_idx('LEAID')] in sd_list):
                 if self.debug:
                     print school
                 cfh.writerow(school)
@@ -442,6 +443,8 @@ def main():
             help='Cache the parsed dataset to disk')
     parser.add_argument('-urban_only', action='store_true', dest='urban_only', required=False,
             help='Filter out non-Urban Districts')
+    parser.add_argument('-tuda_only', action='store_true', dest='tuda_only', required=False,
+            help='Select only Districts in the NAEP TUDA List')
     parser.add_argument('-debug', action='store_true',
             help='Print Debug Messages')
     args = parser.parse_args()
@@ -457,7 +460,12 @@ def main():
             print "=" * 80
             parse = NCESParser(year=year, debug=args.debug)
             parse.parse(forced_orig=True)
-            parse.save_parsed_data(args.urban_only)
+            if args.urban_only:
+                parse.save_parsed_data(sd_list=urban_dist, sd_list_only=True)
+            elif args.tuda_only:
+                parse.save_parsed_data(sd_list=tuda_dist, sd_list_only=True)
+            else:
+                parse.save_parsed_data()
     elif args.update_pk:
         for year in range(1987, 2011):
             print "=" * 80
