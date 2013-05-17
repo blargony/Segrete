@@ -71,14 +71,6 @@ def main(argv):
     if args.majority:
         majorities = [args.majority]
 
-    # Default search query
-    idx = {
-        'TOTAL': 'MEMBER',
-        'CATEGORY': 'LEAID',
-        'MINORITY':  'BLACK',
-        'SEC_MINORITY': '',
-        'MAJORITY': 'WHITE'
-    }
 
     wb = Workbook()
     worksheets = {}
@@ -112,6 +104,8 @@ def main(argv):
         'mag_prop', # 'Magnet Proportion',
         'cha_prop', # 'Charter Proportion',
         'cho_prop', # 'Choice Proportion'
+        'wh_count', # 'White Student Count'
+        'wh_prop',  # 'White Proportion'
     ]
 
     for ws in worksheets.values():
@@ -148,6 +142,16 @@ def main(argv):
     for i, year in enumerate(year_range):
         # Reset the column offset as we move to a new row
         col_offset = base_col_offset
+
+        # Default SegCalc search query - for calculating basic totals
+        idx = {
+            'TOTAL': 'MEMBER',
+            'CATEGORY': 'LEAID',
+            'MINORITY':  'BLACK',
+            'SEC_MINORITY': '',
+            'MAJORITY': 'WHITE'
+        }
+
         print "Loading NCES Data from:  %d" % year
         nces = NCESParser(year=year)
         schools = nces.parse(make_dict=True)
@@ -179,6 +183,18 @@ def main(argv):
         pchc_idx = segcalc.calc_prop(chc_idx, tot_idx)
         for leaid in tuda_dist.keys():
             write_ws(worksheets, leaid, row_offset, col_offset, pchc_idx)
+        col_offset += 1
+
+        print "Calculating Total White Students"
+        wh_cnt = segcalc.calc_totals(idx='WHITE')
+        for leaid in tuda_dist.keys():
+            write_ws(worksheets, leaid, row_offset, col_offset, wh_cnt)
+        col_offset += 1
+
+        print "Calculating Proportion of White Students in the District"
+        wh_prop = segcalc.calc_prop(wh_cnt, tot_idx)
+        for leaid in tuda_dist.keys():
+            write_ws(worksheets, leaid, row_offset, col_offset, wh_prop)
         col_offset += 1
 
         # --------------------------------------
