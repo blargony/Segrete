@@ -255,8 +255,10 @@ class SegCalc(object):
                 ti = self.get_minority(school)
             elif idx == 'MAJORITY':
                 ti = self.get_majority(school)
-            else:
+            elif not idx:  # Default to Totals Student Count
                 ti = self.get_members(school)
+            else:
+                ti = school[idx]
 
             # Make sure the datastructure exists
             # Negative numbers mean missing data.
