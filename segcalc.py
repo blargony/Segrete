@@ -121,11 +121,17 @@ class SegCalc(object):
                     append_data = False
 
                     if self.match:
+                        # Try to pull out the filter data entry
+                        # it may not be present in which case: No Match
+                        try:
+                            data_match_val = data[self.match_idx]
+                        except KeyError:
+                            continue
                         if self.match_val.isdigit():
                             match_int_val = int(self.match_val)
                         if (
-                            data[self.match_idx] == self.match_val or
-                            data[self.match_idx] == match_int_val
+                            data_match_val == self.match_val or
+                            data_match_val == match_int_val
                             ):
                             append_data = True
                     if self.only_high_school and self.is_high_school(data):
