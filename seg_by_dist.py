@@ -57,9 +57,9 @@ def main(argv):
         majorities = ['WHITE']
     else:
         year_range = range(1987, 2011)
-        minorities     = ['BLACK', 'HISP', 'BLACK', 'HISP', 'FRELCH', 'FRELCH']
-        sec_minorities = [None, None, 'HISP', None, None, 'REDLCH']
-        majorities     = ['WHITE', 'WHITE', 'WHITE', 'BLACK', None, None]
+        minorities     = ['WHITE', 'BLACK', 'HISP', 'BLACK', 'HISP', 'FRELCH', 'FRELCH']
+        sec_minorities = [None, None, None, 'HISP', None, None, 'REDLCH']
+        majorities     = ['WHITE', 'WHITE', 'WHITE', 'WHITE', 'BLACK', None, None]
 
     # Override the default years/groups per command line requests
     if args.year:
@@ -104,8 +104,6 @@ def main(argv):
         'mag_prop', # 'Magnet Proportion',
         'cha_prop', # 'Charter Proportion',
         'cho_prop', # 'Choice Proportion'
-        'wh_count', # 'White Student Count'
-        'wh_prop',  # 'White Proportion'
     ]
 
     for ws in worksheets.values():
@@ -150,6 +148,8 @@ def main(argv):
             'MINORITY':  'BLACK',
             'SEC_MINORITY': '',
             'MAJORITY': 'WHITE'
+            # 'MATCH_IDX': 'CHARTR',
+            # 'MATCH_VAL': '1'
         }
 
         print "Loading NCES Data from:  %d" % year
@@ -183,18 +183,6 @@ def main(argv):
         pchc_idx = segcalc.calc_prop(chc_idx, tot_idx)
         for leaid in tuda_dist.keys():
             write_ws(worksheets, leaid, row_offset, col_offset, pchc_idx)
-        col_offset += 1
-
-        print "Calculating Total White Students"
-        wh_cnt = segcalc.calc_totals(idx='WHITE')
-        for leaid in tuda_dist.keys():
-            write_ws(worksheets, leaid, row_offset, col_offset, wh_cnt)
-        col_offset += 1
-
-        print "Calculating Proportion of White Students in the District"
-        wh_prop = segcalc.calc_prop(wh_cnt, tot_idx)
-        for leaid in tuda_dist.keys():
-            write_ws(worksheets, leaid, row_offset, col_offset, wh_prop)
         col_offset += 1
 
         # --------------------------------------
