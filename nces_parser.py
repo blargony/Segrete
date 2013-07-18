@@ -14,6 +14,7 @@ import unittest
 
 from fips import fips_to_st
 from urban import urban_dist
+from big import big_dist
 from tuda import tuda_dist
 
 # ==============================================================================
@@ -441,8 +442,14 @@ def main():
             help='Save a reduced CSV of the NCES Data File')
     parser.add_argument('-update_pk', action='store_true', dest='update_pk', required=False,
             help='Cache the parsed dataset to disk')
-    parser.add_argument('-urban_only', action='store_true', dest='urban_only', required=False,
+    parser.add_argument('--match_idx', action='store', dest='match_idx', required=False,
+            help='Only use data points that match some criterion')
+    parser.add_argument('--match_val', action='store', dest='match_val', required=False,
+            help='Value to match when using --match_idx')
+     parser.add_argument('-urban_only', action='store_true', dest='urban_only', required=False,
             help='Filter out non-Urban Districts')
+    parser.add_argument('-big_only', action='store_true', dest='big_only', required=False,
+            help='Biggest 50 Districts')
     parser.add_argument('-tuda_only', action='store_true', dest='tuda_only', required=False,
             help='Select only Districts in the NAEP TUDA List')
     parser.add_argument('-debug', action='store_true',
@@ -462,6 +469,8 @@ def main():
             parse.parse(forced_orig=True)
             if args.urban_only:
                 parse.save_parsed_data(sd_list=urban_dist, sd_list_only=True)
+            if args.big_only:
+                parse.save_parsed_data(sd_list=big_dist, sd_list_only=True)
             elif args.tuda_only:
                 parse.save_parsed_data(sd_list=tuda_dist, sd_list_only=True)
             else:
