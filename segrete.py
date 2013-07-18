@@ -228,6 +228,9 @@ def main(argv):
         category_list = []
         for category, total in category_by_size:
             category_list.append(category)
+        if args.debug:
+            for cat in category_list:
+                print "    '%s': '%s'," % (cat, category_lut[cat].title())
 
         print "Generating Report"
         save_report(
