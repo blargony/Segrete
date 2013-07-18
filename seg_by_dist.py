@@ -12,6 +12,7 @@ from nces_parser import NCESParser
 from xlwt import Workbook
 
 from tuda import tuda_dist
+from big import big_dist
 
 # ==============================================================================
 # Constants
@@ -45,6 +46,8 @@ def main(argv):
             help='Override the default list of Majority Groups')
     parser.add_argument('--year', action='store', dest='year', required=False, type=int,
             help='Override the default list of years to report on')
+    parser.add_argument('-big_dist', action='store_true', dest='big_dist', required=False,
+            help='Big District Mode')
     parser.add_argument('-debug', action='store_true', dest='debug', required=False,
             help='Debug Mode')
     args = parser.parse_args()
@@ -70,11 +73,16 @@ def main(argv):
         sec_minorities = [args.sec_minorities]
     if args.majority:
         majorities = [args.majority]
-
+    if args.majority:
+        majorities = [args.majority]
+    if args.big_dist:
+        dist_list = big_dist
+    else:
+        dist_list = tuda_dist
 
     wb = Workbook()
     worksheets = {}
-    for leaid, dist_name in tuda_dist.items():
+    for leaid, dist_name in dist_list.items():
         worksheets[leaid] = wb.add_sheet(dist_name)
 
     # --------------------------------------
@@ -147,9 +155,9 @@ def main(argv):
             'CATEGORY': 'LEAID',
             'MINORITY':  'BLACK',
             'SEC_MINORITY': '',
-            'MAJORITY': 'WHITE'
-            # 'MATCH_IDX': 'CHARTR',
-            # 'MATCH_VAL': '1'
+            'MAJORITY': 'WHITE',
+            'MATCH_IDX': 'CHARTR',
+            'MATCH_VAL': '1'
         }
 
         print "Loading NCES Data from:  %d" % year
@@ -160,28 +168,28 @@ def main(argv):
 
         print "Calculating Total Student Count"
         tot_idx = segcalc.calc_totals()
-        for leaid in tuda_dist.keys():
+        for leaid in dist_list.keys():
             write_ws(worksheets, leaid, row_offset, col_offset, tot_idx)
         col_offset += 1
 
         print "Calculating Proportion of Students in a Magnet"
         mag_idx = segcalc.calc_dependant_totals(sum_idx='MEMBER', dep_idx='MAGNET')
         pmag_idx = segcalc.calc_prop(mag_idx, tot_idx)
-        for leaid in tuda_dist.keys():
+        for leaid in dist_list.keys():
             write_ws(worksheets, leaid, row_offset, col_offset, pmag_idx)
         col_offset += 1
 
         print "Calculating Proportion of Students in a Charter"
         chr_idx = segcalc.calc_dependant_totals(sum_idx='MEMBER', dep_idx='CHARTR')
         pchr_idx = segcalc.calc_prop(chr_idx, tot_idx)
-        for leaid in tuda_dist.keys():
+        for leaid in dist_list.keys():
             write_ws(worksheets, leaid, row_offset, col_offset, pchr_idx)
         col_offset += 1
 
         print "Calculating Proportion of Students in a Magnet or Charter"
         chc_idx = segcalc.calc_dependant_totals(sum_idx='MEMBER', dep_idx='CHARTR', sec_dep_idx='MAGNET')
         pchc_idx = segcalc.calc_prop(chc_idx, tot_idx)
-        for leaid in tuda_dist.keys():
+        for leaid in dist_list.keys():
             write_ws(worksheets, leaid, row_offset, col_offset, pchc_idx)
         col_offset += 1
 
@@ -202,31 +210,31 @@ def main(argv):
             print "Performing Calculations on Data from:  %d" % year
             print "Calculating Total Minority Students"
             min_idx = segcalc.calc_totals('MINORITY')
-            for leaid in tuda_dist.keys():
+            for leaid in dist_list.keys():
                 write_ws(worksheets, leaid, row_offset, col_offset, min_idx)
             col_offset += 1
 
             print "Calculating Proportion of Students in the Minority"
             mper_idx = segcalc.calc_proportion(idx='MINORITY')
-            for leaid in tuda_dist.keys():
+            for leaid in dist_list.keys():
                 write_ws(worksheets, leaid, row_offset, col_offset, mper_idx)
             col_offset += 1
 
             print "Calculating Dissimilarity Index"
             dis_idx = segcalc.calc_dis_idx()
-            for leaid in tuda_dist.keys():
+            for leaid in dist_list.keys():
                 write_ws(worksheets, leaid, row_offset, col_offset, dis_idx)
             col_offset += 1
 
             print "Calculating Exposure Index"
             exp_idx = segcalc.calc_exp_idx()
-            for leaid in tuda_dist.keys():
+            for leaid in dist_list.keys():
                 write_ws(worksheets, leaid, row_offset, col_offset, exp_idx)
             col_offset += 1
 
             print "Calculating Isolation Index"
             iso_idx = segcalc.calc_iso_idx()
-            for leaid in tuda_dist.keys():
+            for leaid in dist_list.keys():
                 write_ws(worksheets, leaid, row_offset, col_offset, iso_idx)
             col_offset += 1
             print "Finished Performing Calculations on Data from:  %d" % year
