@@ -202,13 +202,65 @@ class SegCalc(object):
             return False
 
     # ======================================
+    def is_k8(self, school):
+        """
+        Is this school an elementary school?
+        """
+        high_grade = self.get_grade(school, high=True)
+        low_grade = self.get_grade(school, high=False)
+
+        if high_grade >= 7 and high_grade < 10 and low_grade < 3:
+            return True
+        else:
+            return False
+
+    # ======================================
+    def is_middle(self, school):
+        """
+        Is this school an elementary school?
+        """
+        high_grade = self.get_grade(school, high=True)
+        low_grade = self.get_grade(school, high=False)
+
+        if high_grade <= 9 and low_grade >= 5:
+            return True
+        else:
+            return False
+
+    # ======================================
+    def is_mh(self, school):
+        """
+        Is this school an elementary school?
+        """
+        high_grade = self.get_grade(school, high=True)
+        low_grade = self.get_grade(school, high=False)
+
+        if high_grade >= 10 and low_grade < 9 and low_grade >= 5:
+            return True
+        else:
+            return False
+
+    # ======================================
     def is_high_school(self, school):
         """
         Is this school an elementary school?
         """
         low_grade = self.get_grade(school, high=False)
 
-        if low_grade >= 9:
+        if low_grade >= 8:
+            return True
+        else:
+            return False
+
+    # ======================================
+    def is_k12(self, school):
+        """
+        Is this school an elementary school?
+        """
+        high_grade = self.get_grade(school, high=True)
+        low_grade = self.get_grade(school, high=False)
+
+        if high_grade >= 11 and low_grade <= 3:
             return True
         else:
             return False
