@@ -46,6 +46,8 @@ def main(argv):
             help='Override the default list of Majority Groups')
     parser.add_argument('--year', action='store', dest='year', required=False, type=int,
             help='Override the default list of years to report on')
+    parser.add_argument('-all_dist', action='store_true', dest='all_dist', required=False,
+            help='All Districts Found in the data Mode')
     parser.add_argument('-big_dist', action='store_true', dest='big_dist', required=False,
             help='Big District Mode')
     parser.add_argument('-debug', action='store_true', dest='debug', required=False,
@@ -73,9 +75,25 @@ def main(argv):
         sec_minorities = [args.sec_minorities]
     if args.majority:
         majorities = [args.majority]
-    if args.majority:
-        majorities = [args.majority]
-    if args.big_dist:
+    if args.all_dist:
+        nces = NCESParser(year=2010)
+        schools = nces.parse(make_dict=True)
+        dist_list = {}
+        for school in schools:
+            id = school["LEAID"]
+            name = school['LEANM'][:28].title()
+            name = name.replace("/", "_")
+            if id not in dist_list.keys():
+                if name + "_1" in dist_list.values():
+                    name += "_2"
+                    print name
+                elif name in dist_list.values():
+                    name += "_1"
+                    print name
+                dist_list[id] = name
+        # print dist_list
+        print "Found %d Districts" % (len(dist_list.keys()))
+    elif args.big_dist:
         dist_list = big_dist
     else:
         dist_list = tuda_dist
@@ -155,9 +173,7 @@ def main(argv):
             'CATEGORY': 'LEAID',
             'MINORITY':  'BLACK',
             'SEC_MINORITY': '',
-            'MAJORITY': 'WHITE',
-            'MATCH_IDX': 'CHARTR',
-            'MATCH_VAL': '1'
+            'MAJORITY': 'WHITE'
         }
 
         print "Loading NCES Data from:  %d" % year
