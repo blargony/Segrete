@@ -382,7 +382,7 @@ class NCESParser(object):
         return dict(zip(self.headers, school))
 
     # --------------------------------------
-    def save_parsed_data(self, sd_list=[], sd_list_only=False):
+    def save_parsed_data(self, filter=False, idx="", idx_list=[]):
         """
         Save out the parsed data
         """
@@ -394,8 +394,8 @@ class NCESParser(object):
 
         count = 0
         for school in self.schools:
-            if (not sd_list_only or
-                    sd_list_only and school[self.get_idx('LEAID')] in sd_list):
+            if (not filter or
+                    filter and school[self.get_idx(idx)] in idx_list):
                 if self.debug:
                     print school
                 cfh.writerow(school)
@@ -446,7 +446,7 @@ def main():
             help='Only use data points that match some criterion')
     parser.add_argument('--match_val', action='store', dest='match_val', required=False,
             help='Value to match when using --match_idx')
-     parser.add_argument('-urban_only', action='store_true', dest='urban_only', required=False,
+    parser.add_argument('-urban_only', action='store_true', dest='urban_only', required=False,
             help='Filter out non-Urban Districts')
     parser.add_argument('-big_only', action='store_true', dest='big_only', required=False,
             help='Biggest 50 Districts')
@@ -468,11 +468,13 @@ def main():
             parse = NCESParser(year=year, debug=args.debug)
             parse.parse(forced_orig=True)
             if args.urban_only:
-                parse.save_parsed_data(sd_list=urban_dist, sd_list_only=True)
+                parse.save_parsed_data(filter=True, idx="LEAID", idx_list=urban_dist)
             if args.big_only:
-                parse.save_parsed_data(sd_list=big_dist, sd_list_only=True)
+                parse.save_parsed_data(filter=True, idx="LEAID", idx_list=big_dist)
             elif args.tuda_only:
-                parse.save_parsed_data(sd_list=tuda_dist, sd_list_only=True)
+                parse.save_parsed_data(filter=True, idx="LEAID", idx_list=tuda_dist)
+            elif args.match_idx:
+                parse.save_parsed_data(True, args.match_idx, args.match_val)
             else:
                 parse.save_parsed_data()
     elif args.update_pk:
