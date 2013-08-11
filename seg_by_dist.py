@@ -10,9 +10,12 @@ from segcalc import SegCalc
 from nces_parser import NCESParser
 
 from xlwt import Workbook
+from xlwt import Formula
+from xlrd import cellname
 
 from tuda import tuda_dist
 from big import big_dist
+
 
 # ==============================================================================
 # Constants
@@ -132,8 +135,11 @@ def main(argv):
         'cho_prop', # 'Choice Proportion'
     ]
 
+    # We start one row/col in from the upper left corner (1,1 in xlwt, B2 in Excel)
+    row_offset = 1
+
     for ws in worksheets.values():
-        col_offset=1
+        col_offset = 1
 
         # Common Data Across minorities
         # e.g. Total Students in a district
@@ -158,7 +164,6 @@ def main(argv):
             for header in min_maj_headers:
                 ws.write(0, col_offset, maj_label+"_"+header)
                 col_offset += 1
-        row_offset = 1
 
     # --------------------------------------
     # Now fill in the static data data
@@ -257,6 +262,24 @@ def main(argv):
 
         # New year, move to the next row
         row_offset += 1
+
+    last_data_row = row_offset - 1
+    row_offset += 1
+
+    stats = [
+        ('Average', 'AVERAGE'),
+        ('Max', 'MAX'),
+        ('Min', 'MIN'),
+        ('StandardDev', 'STDEV')
+    ]
+
+    for title, formula in stats:
+        for ws in worksheets.values():
+            ws.write(row_offset, 0, title)
+            for col in range(1,col_offset):
+                ws.write(row_offset, col, Formula("%s(%s:%s)" % (formula, cellname(1, col), cellname(last_data_row, col))))
+        row_offset += 1
+
 
     print "Generating Report"
     wb.save(args.outfile)
