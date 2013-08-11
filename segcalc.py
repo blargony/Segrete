@@ -222,7 +222,7 @@ class SegCalc(object):
         high_grade = self.get_grade(school, high=True)
         low_grade = self.get_grade(school, high=False)
 
-        if high_grade <= 9 and low_grade >= 5:
+        if high_grade <= 9 and low_grade >= 3:
             return True
         else:
             return False
