@@ -2,6 +2,9 @@
 """
 Pull together the NCES data and the Segregation calculator to produce
 general reports on segregation in the USA.
+
+This report has each district on its own tab with all the years on the
+vertical axis and the data types in the columns.
 """
 import sys
 import argparse
