@@ -16,6 +16,7 @@ from fips import fips_to_st
 from urban import urban_dist
 from big import big_dist
 from tuda import tuda_dist
+from ca_big import ca_big_dist
 
 # ==============================================================================
 # Constants and RegEx
@@ -450,6 +451,8 @@ def main():
             help='Filter out non-Urban Districts')
     parser.add_argument('-big_only', action='store_true', dest='big_only', required=False,
             help='Biggest 50 Districts')
+    parser.add_argument('-ca_big_only', action='store_true', dest='ca_big_only', required=False,
+            help='Biggest CA Districts')
     parser.add_argument('-tuda_only', action='store_true', dest='tuda_only', required=False,
             help='Select only Districts in the NAEP TUDA List')
     parser.add_argument('-debug', action='store_true',
@@ -471,10 +474,12 @@ def main():
                 parse.save_parsed_data(filter=True, idx="LEAID", idx_list=urban_dist)
             if args.big_only:
                 parse.save_parsed_data(filter=True, idx="LEAID", idx_list=big_dist)
+            if args.ca_big_only:
+                parse.save_parsed_data(filter=True, idx="LEAID", idx_list=ca_big_dist)
             elif args.tuda_only:
                 parse.save_parsed_data(filter=True, idx="LEAID", idx_list=tuda_dist)
             elif args.match_idx:
-                parse.save_parsed_data(True, args.match_idx, args.match_val)
+                parse.save_parsed_data(True, args.match_idx, [args.match_val])
             else:
                 parse.save_parsed_data()
     elif args.update_pk:
