@@ -229,8 +229,10 @@ def main(argv):
         for category, total in category_by_size:
             category_list.append(category)
         if args.debug:
+            print "dist_dict = {"
             for cat in category_list:
                 print "    '%s': '%s'," % (cat, category_lut[cat].title())
+            print "}"
 
         print "Generating Report"
         save_report(
