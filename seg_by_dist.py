@@ -271,6 +271,7 @@ def main(argv):
 
     stats = [
         ('Average', 'AVERAGE'),
+        ('Median', 'MEDIAN'),
         ('Max', 'MAX'),
         ('Min', 'MIN'),
         ('StandardDev', 'STDEV')
