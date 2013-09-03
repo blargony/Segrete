@@ -479,7 +479,7 @@ def main():
             elif args.tuda_only:
                 parse.save_parsed_data(filter=True, idx="LEAID", idx_list=tuda_dist)
             elif args.match_idx:
-                parse.save_parsed_data(True, args.match_idx, [args.match_val])
+                parse.save_parsed_data(filter=True, idx=args.match_idx, idx_list=[args.match_val])
             else:
                 parse.save_parsed_data()
     elif args.update_pk:
