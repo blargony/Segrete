@@ -13,11 +13,11 @@ import pickle
 import unittest
 
 from fips import fips_to_st
-from urban import urban_dist
-from big import big_dist
-from tuda import tuda_dist
-from ca_big import ca_big_dist
-from sjzips import sjzips
+from filters.urban import urban_dist
+from filters.big import big_dist
+from filters.tuda import tuda_dist
+from filters.ca_big import ca_big_dist
+from filters.sjzips import sjzips
 
 # ==============================================================================
 # Constants and RegEx
