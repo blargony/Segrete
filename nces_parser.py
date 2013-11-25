@@ -17,6 +17,7 @@ from urban import urban_dist
 from big import big_dist
 from tuda import tuda_dist
 from ca_big import ca_big_dist
+from sjzips import sjzips
 
 # ==============================================================================
 # Constants and RegEx
@@ -98,6 +99,7 @@ class NCESParser(object):
             "SCHNAM",
             "CITY",
             "ST",
+            "ZIP",
             "BLACK",
             "HISP",
             "ASIAN",
@@ -199,6 +201,10 @@ class NCESParser(object):
                 type = 'AN'
             if col_name[:4] == "FIPS":
                 type = 'AN'
+            if col_name[:3] == "ZIP" and col_name[:4] != "ZIP4":
+                col_name = "ZIP"
+            if col_name[:4] == "LZIP" and col_name[:5] != "LZIP4" :  # ZIP or Location ZIP (not Mailing ZIP)
+                col_name = "ZIP"
             if col_name[:4] == "GSL0":  # 1994 typo in the format file.
                 col_name = "GSLO"
             if col_name == "FLE%02d" % (self.year%100):
@@ -455,6 +461,8 @@ def main():
             help='Biggest CA Districts')
     parser.add_argument('-tuda_only', action='store_true', dest='tuda_only', required=False,
             help='Select only Districts in the NAEP TUDA List')
+    parser.add_argument('-sjzips', action='store_true', dest='sjzips', required=False,
+            help='Select only Districts in San Jose, CA')
     parser.add_argument('-debug', action='store_true',
             help='Print Debug Messages')
     args = parser.parse_args()
@@ -478,6 +486,8 @@ def main():
                 parse.save_parsed_data(filter=True, idx="LEAID", idx_list=ca_big_dist)
             elif args.tuda_only:
                 parse.save_parsed_data(filter=True, idx="LEAID", idx_list=tuda_dist)
+            elif args.sjzips:
+                parse.save_parsed_data(filter=True, idx="ZIP", idx_list=sjzips)
             elif args.match_idx:
                 parse.save_parsed_data(filter=True, idx=args.match_idx, idx_list=[args.match_val])
             else:
