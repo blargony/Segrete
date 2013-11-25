@@ -8,8 +8,8 @@ import argparse
 from segcalc import SegCalc
 from nces_parser import NCESParser
 
-from tuda import tuda_dist
-from ca_big import ca_big_dist
+from filters.tuda import tuda_dist
+from filters.ca_big import ca_big_dist
 
 from xlwt import Workbook
 from xlwt import Formula
