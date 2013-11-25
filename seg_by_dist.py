@@ -52,6 +52,8 @@ def main(argv):
             help='Value to match when using --match_idx')
     parser.add_argument('--year', action='store', dest='year', required=False, type=int,
             help='Override the default list of years to report on')
+    parser.add_argument('--grade', action='store', dest='grade', required=False, type=int,
+            help='Select a specific grade that the school must have')
     parser.add_argument('-debug', action='store_true', dest='debug', required=False,
             help='Debug Mode')
     args = parser.parse_args()
@@ -62,11 +64,14 @@ def main(argv):
         minorities = ['BLACK']
         sec_minorities = [None]
         majorities = ['WHITE']
+        grade = False # All Grades
     else:
         year_range = range(1987, 2011)
+        # year_range = range(2002, 2012, 2)  # Even years based on NAEP data
         minorities     = ['WHITE', 'BLACK', 'HISP', 'BLACK', 'HISP', 'FRELCH', 'FRELCH']
         sec_minorities = [None, None, None, 'HISP', None, None, 'REDLCH']
         majorities     = ['WHITE', 'WHITE', 'WHITE', 'WHITE', 'BLACK', None, None]
+        grade = False # All Grades
 
     # Override the default years/groups per command line requests
     if args.year:
@@ -77,6 +82,8 @@ def main(argv):
         sec_minorities = [args.sec_minorities]
     if args.majority:
         majorities = [args.majority]
+    if args.grade:
+        grade = args.grade
 
     # Search through the data for the list of districts to report on
     nces = NCESParser(year=2010)
@@ -186,7 +193,7 @@ def main(argv):
         print "Loading NCES Data from:  %d" % year
         nces = NCESParser(year=year)
         schools = nces.parse(make_dict=True)
-        segcalc = SegCalc(schools, idx)
+        segcalc = SegCalc(schools, idx, grade=grade)
         print "Finished Loading NCES Data from:  %d" % year
 
         print "Calculating Total Student Count"
@@ -228,7 +235,7 @@ def main(argv):
             print "*" * 80
             print idx
             print "*" * 80
-            segcalc = SegCalc(schools, idx)
+            segcalc = SegCalc(schools, idx, grade=grade)
 
             print "Performing Calculations on Data from:  %d" % year
             print "Calculating Total Minority Students"
