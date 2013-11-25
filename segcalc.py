@@ -24,7 +24,7 @@ class SegCalc(object):
     """
     A segregation calculating object.
     """
-    def __init__(self, data_list, index_dict, only_hs=False, only_el=False):
+    def __init__(self, data_list, index_dict, only_hs=False, only_el=False, grade=False):
         """
         Set a dataset iterator object that we can step through
         and a dictionary of indexes for extracting the information
@@ -34,6 +34,7 @@ class SegCalc(object):
         self.data = data_list
         self.only_high_school = only_hs
         self.only_elementary = only_el
+        self.grade = grade
         self.minority_idx = index_dict['MINORITY']  # Minority Group Student Count
         self.majority_idx = index_dict['MAJORITY']  # Majority Group Student Count
         self.total_idx = index_dict['TOTAL']      # Total Student Count
@@ -110,7 +111,8 @@ class SegCalc(object):
             if (
                 self.match == False and
                 self.only_high_school == False and
-                self.only_elementary == False
+                self.only_elementary == False and
+                self.grade == False
             ):
                 self._filtered_data = self.data
             else:
@@ -137,6 +139,8 @@ class SegCalc(object):
                     if self.only_high_school and self.is_high_school(data):
                         append_data = True
                     if self.only_elementary and self.is_elementary(data):
+                        append_data = True
+                    if self.grade and self.has_grade(data, self.grade):
                         append_data = True
 
                     if append_data:
@@ -261,6 +265,19 @@ class SegCalc(object):
         low_grade = self.get_grade(school, high=False)
 
         if high_grade >= 11 and low_grade <= 3:
+            return True
+        else:
+            return False
+
+    # ======================================
+    def has_grade(self, school, grade):
+        """
+        Does this school teach this grade?
+        """
+        high_grade = self.get_grade(school, high=True)
+        low_grade = self.get_grade(school, high=False)
+
+        if grade <= high_grade and grade >= low_grade:
             return True
         else:
             return False
