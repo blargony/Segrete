@@ -24,14 +24,14 @@ class SegCalc(object):
     """
     A segregation calculating object.
     """
-    def __init__(self, data_list, index_dict, only_hs=False, only_el=False, grade=False):
+    def __init__(self, school_list, index_dict, only_hs=False, only_el=False, grade=False):
         """
         Set a dataset iterator object that we can step through
         and a dictionary of indexes for extracting the information
         from the dataobjects turned off by the dataset iterator
         """
         self.debug = 0
-        self.data = data_list
+        self.schools = school_list
         self.only_high_school = only_hs
         self.only_elementary = only_el
         self.grade = grade
@@ -99,14 +99,14 @@ class SegCalc(object):
 
     # ======================================
     @property
-    def filtered_data(self):
+    def filtered_schools(self):
         """
-        Filter the data per the requested matching
-        data index and value.  Cache the results for
+        Filter the schools per the requested matching
+        school index and value.  Cache the results for
         later use
         """
         try:
-            return self._filtered_data
+            return self._filtered_schools
         except AttributeError:
             if (
                 self.match == False and
@@ -114,19 +114,19 @@ class SegCalc(object):
                 self.only_elementary == False and
                 self.grade == False
             ):
-                self._filtered_data = self.data
+                self._filtered_schools = self.schools
             else:
 
-                self._filtered_data = []
+                self._filtered_schools = []
 
-                for data in self.data:
+                for school in self.schools:
                     append_data = False
 
                     if self.match:
                         # Try to pull out the filter data entry
                         # it may not be present in which case: No Match
                         try:
-                            data_match_val = data[self.match_idx]
+                            data_match_val = school[self.match_idx]
                         except KeyError:
                             continue
                         if self.match_val.isdigit():
@@ -136,16 +136,18 @@ class SegCalc(object):
                             data_match_val == match_int_val
                             ):
                             append_data = True
-                    if self.only_high_school and self.is_high_school(data):
+                    if self.only_high_school and self.is_high_school(school):
                         append_data = True
-                    if self.only_elementary and self.is_elementary(data):
+                    if self.only_elementary and self.is_elementary(school):
                         append_data = True
-                    if self.grade and self.has_grade(data, self.grade):
+                    if self.grade and self.has_grade(school, self.grade):
                         append_data = True
 
                     if append_data:
-                        self._filtered_data.append(data)
-            return self._filtered_data
+                        self._filtered_schools.append(school)
+
+            print "Schools Found: %d" % (len(self._filtered_schools))
+            return self._filtered_schools
 
     # ======================================
     def get_idxed_val(self, idx_x, idx_y):
@@ -153,7 +155,7 @@ class SegCalc(object):
         Get a dictionary mapping one index to another
         """
         Mapping = {}
-        for school in self.filtered_data:
+        for school in self.filtered_schools:
             try:
                 x = school[idx_x]
                 y = school[idx_y]
@@ -325,7 +327,7 @@ class SegCalc(object):
         Get a report on the total student count and so forth
         """
         Total = {}
-        for school in self.filtered_data:
+        for school in self.filtered_schools:
             if idx == 'MINORITY':
                 ti = self.get_minority(school)
             elif idx == 'MAJORITY':
@@ -350,7 +352,7 @@ class SegCalc(object):
         Get a report on the total student count and so forth
         """
         Total = {}
-        for school in self.filtered_data:
+        for school in self.filtered_schools:
             try:
                 test = Total[school[self.cat_idx]]
             except KeyError:
@@ -403,7 +405,7 @@ class SegCalc(object):
         Get a report on the total student count and so forth
         """
         Percentages = {}
-        for school in self.filtered_data:
+        for school in self.filtered_schools:
             try:
                 perc = dict(
                     WHITE=school['WHITE'],
@@ -454,7 +456,7 @@ class SegCalc(object):
         """
         Y = {}
         Sum = {}
-        for school in self.filtered_data:
+        for school in self.filtered_schools:
             try:
                 yi = school[self.minority_idx]
                 ti = school[self.total_idx]
@@ -526,7 +528,7 @@ class SegCalc(object):
         """
         Y = {}
         Sum = {}
-        for school in self.filtered_data:
+        for school in self.filtered_schools:
             yi = get_min(school)
             zi = get_maj(school)
             ti = self.get_members(school)
@@ -608,7 +610,7 @@ class SegCalc(object):
         T = {}
         Py = {}
         Pz = {}
-        for school in self.filtered_data:
+        for school in self.filtered_schools:
             ti = self.get_members(school)
             giy = self.get_minority(school)
             giz = self.get_majority(school)
@@ -687,7 +689,7 @@ class SegCalc(object):
 
         # Now we have Py/Pz, we can calculate the numerator
         Num = {}
-        for school in self.filtered_data:
+        for school in self.filtered_schools:
             ti = self.get_members(school)
             giy = self.get_minority(school)
             giz = self.get_majority(school)
@@ -756,7 +758,7 @@ class SegCalc(object):
         """
         # Sort schools out into lists group by the category index
         schools_by_cat = {}
-        for school in self.filtered_data:
+        for school in self.filtered_schools:
             # Make sure the datastructure exists
             try:
                 test = schools_by_cat[school[self.cat_idx]]
@@ -848,7 +850,7 @@ class SegCalc(object):
         T, Py, Pz = self.calc_cat_totals()
 
         schools_and_y_group = []
-        for school in self.filtered_data:
+        for school in self.filtered_schools:
             giy = school[self.minority_idx]
             ti = school[self.total_idx]
             try:
