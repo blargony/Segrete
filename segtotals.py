@@ -148,8 +148,8 @@ def main(argv):
 
     # Default search query
     idx = {
-        'Y_GROUP': 'BLACK',
-        'Z_GROUP': 'WHITE',
+        'MINORITY': 'BLACK',
+        'MAJORITY': 'WHITE',
         'TOTAL': 'MEMBER',
         'CATEGORY': category,
         'SUB_CAT': 'LEAID',
