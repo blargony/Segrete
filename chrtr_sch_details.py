@@ -12,6 +12,8 @@ from nces_parser import NCESParser
 from xlwt import Workbook
 from xlwt import Formula
 
+from filters.sjzips import sjzips
+
 # ==============================================================================
 # Constants
 # ==============================================================================
@@ -39,6 +41,8 @@ def main(argv):
             help='Report Filename')
     parser.add_argument('-leaid', action='store', dest='leaid', required=False,
             help='Local Agency (School District) ID')
+    parser.add_argument('-sanjose', action='store_true', dest='sanjose', required=False,
+            help='Use the San Jose, CA based School list')
     parser.add_argument('-debug', action='store_true', dest='debug', required=False,
             help='Debug Mode')
     args = parser.parse_args()
@@ -103,8 +107,16 @@ def main(argv):
     dist_hisp = 0.0
     for school in schools:
         if (
-            school['LEAID'] == leaid and
-            school['STATUS'] == '1'
+            (
+                school['LEAID'] == leaid and
+                school['STATUS'] == '1' and
+                not args.sanjose
+            ) or
+            (
+                school['ZIP'] in sjzips and
+                school['STATUS'] == '1' and
+                args.sanjose
+            )
         ):
             # print school
             if school['CHARTR'] == '1':
@@ -124,19 +136,20 @@ def main(argv):
             dist_black += black
             dist_hisp += hisp
 
-            sheets[idx].write(row_offset[idx], 0, name)
-            sheets[idx].write(row_offset[idx], 1, total)
-            sheets[idx].write(row_offset[idx], 2, white)
-            sheets[idx].write(row_offset[idx], 3, white/total)
-            sheets[idx].write(row_offset[idx], 4, black)
-            sheets[idx].write(row_offset[idx], 5, black/total)
-            sheets[idx].write(row_offset[idx], 6, hisp)
-            sheets[idx].write(row_offset[idx], 7, hisp/total)
-            sheets[idx].write(row_offset[idx], 8, black+hisp)
-            sheets[idx].write(row_offset[idx], 9, (black+hisp)/total)
-            sheets[idx].write(row_offset[idx], 10, total-white-black-hisp)
-            sheets[idx].write(row_offset[idx], 11, (total-white-black-hisp)/total)
-            row_offset[idx] += 1
+            if total:
+                sheets[idx].write(row_offset[idx], 0, name)
+                sheets[idx].write(row_offset[idx], 1, total)
+                sheets[idx].write(row_offset[idx], 2, white)
+                sheets[idx].write(row_offset[idx], 3, white/total)
+                sheets[idx].write(row_offset[idx], 4, black)
+                sheets[idx].write(row_offset[idx], 5, black/total)
+                sheets[idx].write(row_offset[idx], 6, hisp)
+                sheets[idx].write(row_offset[idx], 7, hisp/total)
+                sheets[idx].write(row_offset[idx], 8, black+hisp)
+                sheets[idx].write(row_offset[idx], 9, (black+hisp)/total)
+                sheets[idx].write(row_offset[idx], 10, total-white-black-hisp)
+                sheets[idx].write(row_offset[idx], 11, (total-white-black-hisp)/total)
+                row_offset[idx] += 1
 
     print "District Summary"
     for idx in range(3):
