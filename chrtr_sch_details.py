@@ -12,7 +12,7 @@ from nces_parser import NCESParser
 from xlwt import Workbook
 from xlwt import Formula
 
-from filters.sjzips import sjzips
+from filters.city_zips import sjzips
 
 # ==============================================================================
 # Constants
