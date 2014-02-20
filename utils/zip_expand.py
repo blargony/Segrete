@@ -33,9 +33,9 @@ def main(argv):
             first = first.strip()
             last = last.strip()
             for i in range(int(first), int(last)):
-                zips.append(i)
+                zips.append(str(i))
         else:
-            zips.append(int(zip))
+            zips.append(str(zip))
     print zips
 
 # -------------------------------------
