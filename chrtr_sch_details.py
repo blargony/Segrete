@@ -12,25 +12,13 @@ from nces_parser import NCESParser
 from xlwt import Workbook
 from xlwt import Formula
 
-from filters.city_zips import sjzips
-
 # ==============================================================================
 # Constants
 # ==============================================================================
-default_dist = '0634320'   # San Diego Unified
 
 # ==============================================================================
 # Functions
 # ==============================================================================
-def write_ws(worksheets, leaid, row, col, data):
-    try:
-        val = data[leaid]
-    except KeyError:
-        val = ""
-    if val < 0.001:
-        val = ""
-
-    worksheets[leaid].write(row, col, val)
 
 # -------------------------------------
 # Parse the command line options
@@ -39,10 +27,10 @@ def main(argv):
     parser = argparse.ArgumentParser(description='Segregation Report Generator')
     parser.add_argument('--outfile', action='store', dest='outfile', required=True,
             help='Report Filename')
-    parser.add_argument('-leaid', action='store', dest='leaid', required=False,
+    parser.add_argument('--leaid', action='store', dest='leaid', required=False,
             help='Local Agency (School District) ID')
-    parser.add_argument('-sanjose', action='store_true', dest='sanjose', required=False,
-            help='Use the San Jose, CA based School list')
+    parser.add_argument('--fips', action='store', dest='fips', required=False,
+            help='ANSI State Code')
     parser.add_argument('-debug', action='store_true', dest='debug', required=False,
             help='Debug Mode')
     args = parser.parse_args()
@@ -51,7 +39,13 @@ def main(argv):
     if args.leaid:
         leaid = args.leaid
     else:
-        leaid = default_dist
+        leaid = None
+
+    # List of Districts
+    if args.fips:
+        fips = args.fips
+    else:
+        fips = None
 
     nces = NCESParser(year=2010)
     schools = nces.parse(make_dict=True)
@@ -109,13 +103,15 @@ def main(argv):
         if (
             (
                 school['LEAID'] == leaid and
-                school['STATUS'] == '1' and
-                not args.sanjose
+                school['STATUS'] == '1'
             ) or
             (
-                school['ZIP'] in sjzips and
-                school['STATUS'] == '1' and
-                args.sanjose
+                school['FIPS'] == fips and
+                school['STATUS'] == '1'
+            ) or
+            (
+                not leaid and
+                not fips
             )
         ):
             # print school
