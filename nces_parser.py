@@ -98,7 +98,7 @@ class NCESParser(object):
             "LEANM",
             "SCHNAM",
             "CITY",
-            "ST",
+            "STATE",
             "ZIP",
             "BLACK",
             "HISP",
@@ -213,6 +213,10 @@ class NCESParser(object):
                 col_name = "AM"
             elif col_name == "IND":
                 col_name = "AM"
+            if col_name[:4] == "CITY" or col_name[:5] == "LCITY":
+                col_name = "CITY"
+            if col_name[:4] == "STATE" or col_name[:5] == "LSTATE":
+                col_name = "STATE"
             if (col_name[:5] == "LEAID" or
                 col_name[:4] == "TYPE" or
                 col_name[:6] == "STATUS"):
