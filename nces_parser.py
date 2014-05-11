@@ -476,7 +476,7 @@ def main():
     # Actually do the work we intend to do here
     # -------------------------------------
     if args.update_csv:
-        for year in range(1987, 2011):
+        for year in range(1987, 2012):
             print "=" * 80
             print "Saving out a reduced dataset for %d" % year
             print "=" * 80
@@ -497,7 +497,7 @@ def main():
             else:
                 parse.save_parsed_data()
     elif args.update_pk:
-        for year in range(1987, 2011):
+        for year in range(1987, 2012):
             print "=" * 80
             print "Saving out a reduced dataset for %d" % year
             print "=" * 80

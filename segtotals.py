@@ -136,7 +136,7 @@ def main(argv):
     if args.debug:
         year_range = range(1987, 1990)
     else:
-        year_range = range(1987, 2011)
+        year_range = range(1987, 2012)
 
     # Override the default years/groups per command line requests
     if args.year:

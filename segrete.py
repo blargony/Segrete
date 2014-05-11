@@ -145,13 +145,13 @@ def main(argv):
 
     # Lets calculate all the data first
     if args.debug:
-        year_range = range(2009,2011)
+        year_range = range(2009,2012)
         minorities = ['BLACK']
         sec_minorities = [None]
         majorities = ['WHITE']
         filenames = ['blacks_white']
     else:
-        year_range = range(1987, 2011)
+        year_range = range(1987, 2012)
         minorities     = ['BLACK', 'HISP', 'BLACK', 'HISP', 'FRELCH', 'FRELCH']
         sec_minorities = [None, None, 'HISP', None, None, 'REDLCH']
         majorities     = ['WHITE', 'WHITE', 'WHITE', 'BLACK', None, None]
