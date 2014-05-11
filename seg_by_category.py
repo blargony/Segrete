@@ -64,13 +64,13 @@ def main(argv):
 
     # Lets calculate all the data first
     if args.debug:
-        year_range = range(2009,2011)
+        year_range = range(2009,2012)
         minorities = ['BLACK']
         sec_minorities = [None]
         majorities = ['WHITE']
         grade = False # All Grades
     else:
-        year_range = range(1987, 2011)
+        year_range = range(1987, 2012)
         # year_range = range(2002, 2012, 2)  # Even years based on NAEP data
         minorities     = ['WHITE', 'BLACK', 'HISP', 'BLACK', 'HISP', 'FRELCH', 'FRELCH']
         sec_minorities = [None, None, None, 'HISP', None, None, 'REDLCH']

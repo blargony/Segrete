@@ -173,9 +173,9 @@ def main(argv):
 
     # Lets calculate all the data first
     if args.debug:
-        year_range = range(2009,2011)
+        year_range = range(2009,2012)
     else:
-        year_range = range(1987, 2011)
+        year_range = range(1987, 2012)
         # year_range = range(1987,1990)
 
     # Override the default years/groups per command line requests

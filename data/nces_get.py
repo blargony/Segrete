@@ -34,8 +34,8 @@ new_layout_format = "psu%02d%slay.txt"
 split_new_format_years = [98, 99, 0, 1, 2, 3, 4, 5, 6]
 split_new_format_ver = ['1c', '1b', '1a', '1a', '1a', '1a', '1b', '1a', '1c']
 
-new_format_years = range(7, 11)
-new_format_ver = ['1b', '1b', '2a', '2a']
+new_format_years = range(7, 12)
+new_format_ver = ['1b', '1b', '2a', '2a', '1a']
 
 special_years = [94, 95, 96, 97, 2, 3]
 special_filenames = {
