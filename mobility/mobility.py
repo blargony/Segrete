@@ -6,33 +6,48 @@ from subprocess import call
 import fips
 
 cities = [
-    ('San Jose', 'CA'),
-    ('San Francisco', 'CA'),
-    ('Washington', 'DC'),
-    ('Seattle', 'WA'),
-    ('Salt Lake City', 'UT'),
-    ('Indianapolis', 'IN'),
-    ('Dayton', 'OH'),
-    ('Atlanta', 'GA'),
-    ('Milwaukee', 'WI'),
-    ('Charlotte', 'NC')
+    (['San Jose'], 'CA'),
+    (['San Francisco'], 'CA'),
+    (['Washington'], 'DC'),
+    (['Seattle'], 'WA'),
+    (['Salt Lake City'], 'UT'),
+    (['New York'], 'NY'),
+    (['Boston'], 'MA'),
+    (['San Diego'], 'CA'),
+    (['Newark'], 'NJ'),
+    (['Machester'], 'NH'),
+    (['Cleveland '], 'OH'),
+    (['St Louis', 'St. Louis', 'Saint Louis'], 'MO'),
+    (['Raleigh'], 'NC'),
+    (['Jacksonville'], 'FL'),
+    (['Columbus'], 'OH'),
+    (['Indianapolis'], 'IN'),
+    (['Dayton'], 'OH'),
+    (['Atlanta'], 'GA'),
+    (['Milwaukee'], 'WI'),
+    (['Charlotte'], 'NC')
 ]
 
-for city, state in cities:
+for city_names, state in cities:
     fips_str = fips.st_to_fips[state]
 
+    city_name = city_names[0]
+    match_vals = []
+    for city_name in city_names:
+        match_vals.append(city_name.upper())
+
     # Data Update
-    args = ['../nces_parser.py', '-update_csv', '--match_idx', 'CITY', '--match_val', city.upper()]
+    args = ['../nces_parser.py', '-update_csv', '--match_idx', 'CITY', '--match_val'] + match_vals
     print args
     call(args)
 
     # Report generation
     # First do the district wide segregation statistics
-    args = ['../seg_by_category.py', '--outfile', city.lower().replace(' ', '_') + '_seg_report.xls', '--category', 'FIPS', '--match_idx', 'FIPS', '--match_val', fips_str]
+    args = ['../seg_by_category.py', '--outfile', city_name.lower().replace(' ', '_') + '_seg_report.xls', '--category', 'FIPS', '--match_idx', 'FIPS', '--match_val', fips_str]
     print args
     call(args)
 
     # Next do the per school reports
-    args = ['../chrtr_sch_details.py', '--outfile', city.lower().replace(' ', '_') + '_school_report.xls', '--fips', fips_str]
+    args = ['../chrtr_sch_details.py', '--outfile', city_name.lower().replace(' ', '_') + '_school_report.xls', '--fips', fips_str]
     print args
     call(args)
