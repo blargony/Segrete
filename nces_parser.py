@@ -455,7 +455,7 @@ def main():
             help='Cache the parsed dataset to disk')
     parser.add_argument('--match_idx', action='store', dest='match_idx', required=False,
             help='Only use data points that match some criterion')
-    parser.add_argument('--match_val', action='store', dest='match_val', required=False,
+    parser.add_argument('--match_val', nargs='+', action='store', dest='match_val', required=False,
             help='Value to match when using --match_idx')
     parser.add_argument('-urban_only', action='store_true', dest='urban_only', required=False,
             help='Filter out non-Urban Districts')
@@ -493,7 +493,7 @@ def main():
             elif args.sjzips:
                 parse.save_parsed_data(filter=True, idx="ZIP", idx_list=sjzips)
             elif args.match_idx:
-                parse.save_parsed_data(filter=True, idx=args.match_idx, idx_list=[args.match_val])
+                parse.save_parsed_data(filter=True, idx=args.match_idx, idx_list=args.match_val)
             else:
                 parse.save_parsed_data()
     elif args.update_pk:
