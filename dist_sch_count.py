@@ -68,7 +68,7 @@ def main(argv):
         dist_other[dist] = 0
         dist_tot[dist] = 0
 
-    nces = NCESParser(year=2010)
+    nces = NCESParser(year=2011)
     schools = nces.parse(make_dict=True)
 
     # Default SegCalc search query - for calculating basic totals
