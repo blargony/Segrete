@@ -164,3 +164,36 @@ ca_big_dist = {
     '0612120': 'El Monte Union High',
     '0633630': 'Roseville Joint Union High'
 }
+
+ca_big_30_dist = {
+    '0622710': 'Los Angeles Unified',
+    '0634320': 'San Diego Unified',
+    '0622500': 'Long Beach Unified',
+    '0614550': 'Fresno Unified',
+    '0612330': 'Elk Grove Unified',
+    '0635310': 'Santa Ana Unified',
+    '0634410': 'San Francisco Unified',
+    '0634170': 'San Bernardino City Unified',
+    '0607440': 'Capistrano Unified',
+    '0609850': 'Corona-Norco Unified',
+    '0614880': 'Garden Grove Unified',
+    '0633840': 'Sacramento City Unified',
+    '0634620': 'San Juan Unified',
+    '0628050': 'Oakland Unified',
+    '0633150': 'Riverside Unified',
+    '0638640': 'Sweetwater Union High',
+    '0613920': 'Fontana Unified',
+    '0609030': 'Clovis Unified',
+    '0638010': 'Stockton Unified',
+    '0619540': 'Kern Union High',
+    '0625800': 'Moreno Valley Unified',
+    '0631530': 'Poway Unified',
+    '0626370': 'Mt. Diablo Unified',
+    '0602630': 'Anaheim Union High',
+    '0634590': 'San Jose Unified',
+    '0614400': 'Fremont Unified',
+    '0625470': 'Montebello Unified',
+    '0633860': 'Saddleback Valley Unified',
+    '0608460': 'Chino Valley Unified',
+    '0601332': 'Twin Rivers Unified'
+}
