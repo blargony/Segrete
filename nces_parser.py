@@ -1,13 +1,19 @@
 #!/usr/bin/env python
 """
-Parse the NCES Data File Format Doc and create parsing instructions for the main file
+Parse the NCES Data File Format Data files.  Either return a list/dict of items
+from the Date Files or cache back as reduced set of the data into much smaller
+data files.
+
+Can be run from the command line to pre-filter the NCES raw data into a reduced dataset
+to speed up run time.   This can also be done by importing the class itself, but I
+exposed it to the command line because this is handy for doing quick experiments.
+
 """
 
 import argparse
 import re
 import os
 import csv
-import pickle
 
 # Unit testing
 import unittest
@@ -18,6 +24,8 @@ from filters.big import big_dist
 from filters.tuda import tuda_dist
 from filters.ca_big import ca_big_dist
 from filters.city_zips import sjzips
+from data.nces_get import FIRST_YEAR
+from data.nces_get import LAST_YEAR
 
 # ==============================================================================
 # Constants and RegEx
@@ -40,7 +48,6 @@ re_idx_definition = re.compile(r'^[+]?(\w+)\s+(\d+)[*]?\s+(\w+)\s+(.*)$')
 
 datafile_name = "nces%02d-%02d.txt"
 saved_datafile_name = "nces%02d-%02d.csv"
-pickle_datafile_name = "nces%02d-%02d.pk"
 formatfile_name = "nces%02d-%02d_layout.txt"
 
 # ==============================================================================
@@ -85,7 +92,7 @@ class NCESParser(object):
         [('COLUMN_NAME', idx), ('COLUMN_NAME', idx), ...]
 
     """
-    def __init__(self, year=None, formatfile="", debug=False):
+    def __init__(self, year, debug=False):
         self.debug = debug
         self.parse_instr = []
         self.header_count = 0
@@ -93,37 +100,33 @@ class NCESParser(object):
         self.descriptions = {}
         self.index_mode = 0
         self.save_names = [
-            "FIPS",
-            "LEAID",
-            "LEANM",
-            "SCHNAM",
-            "CITY",
-            "STATE",
-            "ZIP",
-            "BLACK",
-            "HISP",
-            "ASIAN",
-            "AM",
-            "WHITE",
-            "MEMBER",
-            "FRELCH",
-            "REDLCH",
-            "TYPE",
-            "STATUS",
-            "GSHI",
-            "GSLO",
-            "CHARTR",
-            "MAGNET",
-            "LOCALE",
-            "ULOCAL"
+            "FIPS",      # State FIPS numerical representation
+            "LEAID",     # School District ID Number
+            "LEANM",     # School District Name
+            "SCHNAM",    # School name
+            "CITY",      # School City
+            "STATE",     # School State
+            "ZIP",       # School Zip
+            "BLACK",     # Number of African American Students
+            "HISP",      # Number of Hispanic (non-white) Students
+            "ASIAN",     # Number of Students of Asian Decent (South and East)
+            "AM",        # Number of American Indian Students
+            "WHITE",     # Number of Caucasian Students
+            "MEMBER",    # Number of Students
+            "FRELCH",    # Number of Free Lunch Eligible students
+            "REDLCH",    # Number of Reduced Price Lunch Eligible Students
+            "TYPE",      # School Type (Regular, Special Ed, Alternative, etc...)
+            "STATUS",    # School Status
+            "GSHI",      # Highest Grade Offered
+            "GSLO",      # Lowest Grade Offered
+            "CHARTR",    # Charter School
+            "MAGNET",    # Magnet School
+            "LOCALE",    # School Urban Level (Rural, Suburban, Small City, Urban...)
+            "ULOCAL"     # Urban School (located within a urban area)
         ]
 
-        if year:
-            self.year = year
-            self.formatfile = self.get_formatfile_name()
-        else:
-            self.formatfile = formatfile
-            self.year = 0
+        self.year = year
+        self.formatfile = self.get_formatfile_name()
 
     def __repr__(self):
         results = ""
@@ -145,10 +148,6 @@ class NCESParser(object):
     # --------------------------------------
     def get_saved_datafile_name(self):
         return self.get_filename(saved_datafile_name)
-
-    # --------------------------------------
-    def get_pickle_datafile_name(self):
-        return self.get_filename(pickle_datafile_name)
 
     # --------------------------------------
     def get_filename(self, name_str):
@@ -368,15 +367,6 @@ class NCESParser(object):
         if forced_orig or datafile:
             return self.parse_orig(datafile, make_dict)
         else:
-            pickle_fname = self.get_pickle_datafile_name()
-            try:
-                fh = open(pickle_fname, 'rb')
-                print "Loading Pickled Data Set"
-                self.schools = pickle.load(fh)
-                return self.schools
-            except IOError:
-                pass
-
             saved_fname = self.get_saved_datafile_name()
             try:
                 open(saved_fname, 'rb')
@@ -413,17 +403,6 @@ class NCESParser(object):
                 count += 1
         print "Saved %d Entries to CSV File %s" % (count, fname)
 
-    # --------------------------------------
-    def pickle_data(self):
-        """
-        Save out the parsed data
-        """
-        fname = self.get_pickle_datafile_name()
-        fh = open(fname, 'wb')
-        print "Pickling %d Entries to .pk File %s" % (len(self.schools), fname)
-        pickle.dump(self.schools, fh, pickle.HIGHEST_PROTOCOL)
-        fh.close()
-
 # *****************************************************************************
 # Unit Tests
 # *****************************************************************************
@@ -443,20 +422,12 @@ class TestBasicNetwork(unittest.TestCase):
 # -------------------------------------
 def main():
     parser = argparse.ArgumentParser(description='NCES Data File Parser')
-    parser.add_argument('--year', action='store', dest='year', required=False, type=int,
-            help='NCES Data Year - Standard filenames assumed')
-    parser.add_argument('--formatfile', action='store', dest='formatfile', required=False,
-            help='NCES Data File Record Layout')
-    parser.add_argument('--datafile', action='store', dest='datafile', required=False,
-            help='NCES Data File')
-    parser.add_argument('-update_csv', action='store_true', dest='update_csv', required=False,
-            help='Save a reduced CSV of the NCES Data File')
-    parser.add_argument('-update_pk', action='store_true', dest='update_pk', required=False,
-            help='Cache the parsed dataset to disk')
+    # dataset idx/val matching  - if data[idx] == val then keep this data, filter out all other (e.g. data[state] == CA)
     parser.add_argument('--match_idx', action='store', dest='match_idx', required=False,
             help='Only use data points that match some criterion')
     parser.add_argument('--match_val', nargs='+', action='store', dest='match_val', required=False,
             help='Value to match when using --match_idx')
+    # Prepackaged match-idx/val pairs
     parser.add_argument('-urban_only', action='store_true', dest='urban_only', required=False,
             help='Filter out non-Urban Districts')
     parser.add_argument('-big_only', action='store_true', dest='big_only', required=False,
@@ -467,6 +438,7 @@ def main():
             help='Select only Districts in the NAEP TUDA List')
     parser.add_argument('-sjzips', action='store_true', dest='sjzips', required=False,
             help='Select only Districts in San Jose, CA')
+    # Other Options
     parser.add_argument('-debug', action='store_true',
             help='Print Debug Messages')
     args = parser.parse_args()
@@ -475,73 +447,26 @@ def main():
     # -------------------------------------
     # Actually do the work we intend to do here
     # -------------------------------------
-    if args.update_csv:
-        for year in range(1987, 2012):
-            print "=" * 80
-            print "Saving out a reduced dataset for %d" % year
-            print "=" * 80
-            parse = NCESParser(year=year, debug=args.debug)
-            parse.parse(forced_orig=True)
-            if args.urban_only:
-                parse.save_parsed_data(filter=True, idx="LEAID", idx_list=urban_dist)
-            if args.big_only:
-                parse.save_parsed_data(filter=True, idx="LEAID", idx_list=big_dist)
-            if args.ca_big_only:
-                parse.save_parsed_data(filter=True, idx="LEAID", idx_list=ca_big_dist)
-            elif args.tuda_only:
-                parse.save_parsed_data(filter=True, idx="LEAID", idx_list=tuda_dist)
-            elif args.sjzips:
-                parse.save_parsed_data(filter=True, idx="ZIP", idx_list=sjzips)
-            elif args.match_idx:
-                parse.save_parsed_data(filter=True, idx=args.match_idx, idx_list=args.match_val)
-            else:
-                parse.save_parsed_data()
-    elif args.update_pk:
-        for year in range(1987, 2012):
-            print "=" * 80
-            print "Saving out a reduced dataset for %d" % year
-            print "=" * 80
-            parse = NCESParser(year=year, debug=args.debug)
-            parse.parse(forced_orig=True)
-            parse.pickle_data()
-    else:
-        if args.year:
-            parse = NCESParser(year=args.year, debug=args.debug)
-        elif args.formatfile:
-            parse = NCESParser(formatfile=args.formatfile, debug=args.debug)
+    for year in range(FIRST_YEAR, LAST_YEAR+1):
+        print "=" * 80
+        print "Saving out a reduced dataset for %d" % year
+        print "=" * 80
+        parser = NCESParser(year=year, debug=args.debug)
+        parser.parse(forced_orig=True)
+        if args.urban_only:
+            parser.save_parsed_data(filter=True, idx="LEAID", idx_list=urban_dist)
+        if args.big_only:
+            parser.save_parsed_data(filter=True, idx="LEAID", idx_list=big_dist)
+        if args.ca_big_only:
+            parser.save_parsed_data(filter=True, idx="LEAID", idx_list=ca_big_dist)
+        elif args.tuda_only:
+            parser.save_parsed_data(filter=True, idx="LEAID", idx_list=tuda_dist)
+        elif args.sjzips:
+            parser.save_parsed_data(filter=True, idx="ZIP", idx_list=sjzips)
+        elif args.match_idx:
+            parser.save_parsed_data(filter=True, idx=args.match_idx, idx_list=args.match_val)
         else:
-            raise Exception("Please select a year or an NCES Record Layout file name")
-
-        print "=" * 80
-        print parse
-        print "=" * 80
-        print parse.get_idx('GSHI')
-
-        if args.year:
-            schools = parse.parse()
-        elif args.formatfile:
-            schools = parse.parse(args.datafile)
-        else:
-            raise Exception("Please define a year when constructing or specify an NCES Datefile Layout file name")
-
-        print "=" * 80
-        print len(schools)
-
-        print "=" * 80
-        print schools[0]
-        print schools[22000]
-        import pprint
-        pprint.pprint(parse.make_dict(schools[22000]))
-
-        print "=" * 80
-        print "Headers"
-        print "=" * 80
-        print parse.headers
-
-        print "=" * 80
-        print "Descriptions"
-        print "=" * 80
-        pprint.pprint(parse.descriptions)
+            parser.save_parsed_data()
 
 # -------------------------------------
 # Drop the script name from the args
