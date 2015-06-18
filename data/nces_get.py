@@ -7,6 +7,7 @@ Usage:
    ./nces_get.py
 
 """
+import os
 from subprocess import call
 
 # ==============================================================================
@@ -16,26 +17,35 @@ from subprocess import call
 #
 # Note that the files are split and later files have a version in the filename
 # ==============================================================================
+FIRST_YEAR = 1986
+LAST_YEAR = 2012
+
 web_addr = "http://nces.ed.gov/ccd/data/zip/"
 layout_web_addr = "http://nces.ed.gov/ccd/data/txt/"
 splits = ['ai', 'kn', 'ow']
 
 zip_ext = "_dat.zip"
 new_zip_ext = "_txt.zip"
+supp_zip_ext = "_txt.zip"
 txt_ext = ".txt"
 dat_ext = ".DAT"
 
 old_format = "psu%02d%s"
 old_layout_format = "psu%02dlay.txt"
-split_old_format_years = range(86, 98)
+split_old_format_years = range((FIRST_YEAR%100), 98)
 
 new_format = "sc%02d%s%s"
 new_layout_format = "psu%02d%slay.txt"
 split_new_format_years = [98, 99, 0, 1, 2, 3, 4, 5, 6]
 split_new_format_ver = ['1c', '1b', '1a', '1a', '1a', '1a', '1b', '1a', '1c']
+new_format_years = range(7, 11)
+new_format_ver = ['1b', '1b', '2a', '2a']
 
-new_format_years = range(7, 12)
-new_format_ver = ['1b', '1b', '2a', '2a', '1a']
+supp_format = "sc%02d%s%s"
+supp_layout_format = "sc%02d%slay.txt"
+supp_format_years = range(11, (LAST_YEAR%100)+1)
+supp_format_ver = ['1a', '1a']
+
 
 special_years = [94, 95, 96, 97, 2, 3]
 special_filenames = {
@@ -128,21 +138,31 @@ def std_layout_filename(year):
 def get_layout_files():
     for year in split_old_format_years:
         layout_filename = old_layout_format % (year)
-        download(layout_web_addr + layout_filename)  # Layout file
-        utf8_encode(layout_filename, std_layout_filename(year))
+        print layout_filename
+        if not os.path.exists(layout_filename) and not os.path.exists(std_layout_filename(year)):
+            download(layout_web_addr + layout_filename)  # Layout file
+            utf8_encode(layout_filename, std_layout_filename(year))
 
     for i, year in enumerate(split_new_format_years):
         if year > 50 or year < 2:
             layout_filename = old_layout_format % (year)
         else:
             layout_filename = new_layout_format % (year, split_new_format_ver[i])
-        download(layout_web_addr + layout_filename)
-        utf8_encode(layout_filename, std_layout_filename(year))
+        if not os.path.exists(layout_filename) and not os.path.exists(std_layout_filename(year)):
+            download(layout_web_addr + layout_filename)
+            utf8_encode(layout_filename, std_layout_filename(year))
 
     for i, year in enumerate(new_format_years):
         layout_filename = new_layout_format % (year, new_format_ver[i])
-        download(layout_web_addr + layout_filename)
-        utf8_encode(layout_filename, std_layout_filename(year))
+        if not os.path.exists(layout_filename) and not os.path.exists(std_layout_filename(year)):
+            download(layout_web_addr + layout_filename)
+            utf8_encode(layout_filename, std_layout_filename(year))
+
+    for i, year in enumerate(supp_format_years):
+        layout_filename = supp_layout_format % (year, supp_format_ver[i])
+        if not os.path.exists(layout_filename) and not os.path.exists(std_layout_filename(year)):
+            download(layout_web_addr + layout_filename)
+            utf8_encode(layout_filename, std_layout_filename(year))
 
 # --------------------------------------
 # Download the files
@@ -150,17 +170,25 @@ def get_layout_files():
 def get_data_files():
     for year in split_old_format_years:
         for split in splits:
-            filename = old_format % (year, split)
-            download(web_addr + filename + zip_ext)
+            filename = old_format % (year, split) + zip_ext
+            if not os.path.exists(filename) and not os.path.exists(std_data_filename(year)):
+                download(web_addr + filename)
 
     for i, year in enumerate(split_new_format_years):
         for split in splits:
-            filename = new_format % (year, split_new_format_ver[i], split)
-            download(web_addr + filename + zip_ext)
+            filename = new_format % (year, split_new_format_ver[i], split) + zip_ext
+            if not os.path.exists(filename) and not os.path.exists(std_data_filename(year)):
+                download(web_addr + filename)
 
     for i, year in enumerate(new_format_years):
-        filename = new_format % (year, new_format_ver[i], "")
-        download(web_addr + filename + new_zip_ext)
+        filename = new_format % (year, new_format_ver[i], "") + new_zip_ext
+        if not os.path.exists(filename) and not os.path.exists(std_data_filename(year)):
+            download(web_addr + filename)
+
+    for i, year in enumerate(supp_format_years):
+        filename = supp_format % (year, supp_format_ver[i], "_supp") + supp_zip_ext
+        if not os.path.exists(filename) and not os.path.exists(std_data_filename(year)):
+            download(web_addr + filename)
 
 # --------------------------------------
 # Unzip, Encode and Rename the files
@@ -185,6 +213,11 @@ def cleanup_files():
     for i, year in enumerate(new_format_years):
         filename = new_format % (year, new_format_ver[i], "")
         unzip(filename + new_zip_ext)
+        utf8_encode(filename + txt_ext, std_data_filename(year))
+
+    for i, year in enumerate(supp_format_years):
+        filename = supp_format % (year, supp_format_ver[i], "_supp")
+        unzip(filename + supp_zip_ext)
         utf8_encode(filename + txt_ext, std_data_filename(year))
 
 # *****************************************************************************
