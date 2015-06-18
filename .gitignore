@@ -1,5 +1,6 @@
 # Data Files that are downloaded
 data/*.txt
+data/*.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
