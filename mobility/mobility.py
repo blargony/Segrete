@@ -32,12 +32,14 @@ for city_names, state in cities:
     fips_str = fips.st_to_fips[state]
 
     city_name = city_names[0]
+
+    # Build up a list of possible city names - if there are spelling variations this allows nces_parser to select them all
     match_vals = []
     for city_name in city_names:
         match_vals.append(city_name.upper())
 
     # Data Update
-    args = ['../nces_parser.py', '-update_csv', '--match_idx', 'CITY', '--match_val'] + match_vals
+    args = ['../nces_parser.py', '--match_idx', 'CITY', '--match_val'] + match_vals
     print args
     call(args)
 
